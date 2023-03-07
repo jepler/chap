@@ -1,0 +1,28 @@
+from dataclasses import dataclass, field
+from dataclasses_json import dataclass_json
+
+@dataclass_json
+@dataclass
+class Message:
+    """Represents one Message within a chap Session"""
+    role: str
+    content: str
+
+def Assistant(content):
+        return Message('assistant', content)
+
+def System(content):
+        return Message('system', content)
+
+def User(content):
+        return Message('user', content)
+
+@dataclass_json
+@dataclass
+class Session:
+    """Represents a series of Messages"""
+    session: list[Message] = field(default_factory=list)
+
+    @classmethod
+    def new_session(cls, system_message:str = "You are a helpful AI called Chap (they/them). You strive to answer truthfully and curteously."):
+        return Session([System(system_message)])
