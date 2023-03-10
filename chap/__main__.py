@@ -17,7 +17,7 @@ def last_session():
 @click.command
 @click.option('--continue-session', '-s', type=click.Path(exists=True), default=None)
 @click.option('--last', is_flag=True)
-@click.option('--new_session', '-n', type=click.Path(exists=False), default=None)
+@click.option('--new-session', '-n', type=click.Path(exists=False), default=None)
 @click.option('--system-message', '-S', type=str, default=None)
 @click.argument('prompt', nargs=-1, required=True)
 def main(continue_session, last, new_session, system_message, prompt):
