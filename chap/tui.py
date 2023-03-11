@@ -9,6 +9,7 @@ import traceback
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Container
 from textual.widgets import Footer, MarkdownViewer, Input
 
 from . import ask, User, Assistant
@@ -20,7 +21,7 @@ def last_session():
     return result
     
 def markdown_for_step(step):
-    return MarkdownViewer(format(step.content), classes='role_' + step.role)
+    return MarkdownViewer(step.content.strip(), classes='role_' + step.role)
 
 class Tui(App):
     CSS_PATH = "tui.css"
@@ -40,13 +41,18 @@ class Tui(App):
     def input(self):   
         return self.query_one(Input)
 
+    @property   
+    def container(self):   
+        return self.query_one(Container)
+
     def compose(self):
         yield Footer()
         yield Input(placeholder="Prompt")
+        yield Container()
 
     async def on_mount(self) -> None:                                           
         try:
-            self.mount_all([markdown_for_step(step) for step in self.session.session])
+            self.container.mount_all([markdown_for_step(step) for step in self.session.session])
         except Exception as e:
             with open("/tmp/fnord", "wt") as f:
                 print("oops", file=f)
@@ -54,15 +60,21 @@ class Tui(App):
                 traceback.print_exception(type(e), e, e.__traceback__, file=f)
             raise
         #self.scrollview.scroll_y = self.scrollview.get_content_height()
+        self.scroll_end()
         self.input.focus()                                            
 
     async def on_input_submitted(self, event) -> None:
+        self.scroll_end()
         result = ask(self.session, event.value)
         if result is not None:
             self.input.value = ""
         doc = "\n\n".join(format(step) for step in self.session.session)
         self.input.value = ""
-        self.mount_all([markdown_for_step(step) for step in self.session.session[-2:]])
+        self.container.mount_all([markdown_for_step(step) for step in self.session.session[-2:]])
+        self.scroll_end()
+
+    def scroll_end(self):
+        self.call_after_refresh(self.container.scroll_end)
 
 @click.command
 @click.option('--continue-session', '-s', type=click.Path(exists=True), default=None)

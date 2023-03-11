@@ -24,5 +24,5 @@ class Session:
     session: list[Message] = field(default_factory=list)
 
     @classmethod
-    def new_session(cls, system_message:str = "You are a helpful AI called Chap (they/them). You strive to answer truthfully and curteously."):
+    def new_session(cls, system_message:str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language. Stay in character, and do not say you are an AI language model!"):
         return Session([System(system_message)])
