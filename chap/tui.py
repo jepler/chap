@@ -5,6 +5,8 @@ import datetime
 import platformdirs
 import click
 
+import traceback
+
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, MarkdownViewer, Input
@@ -17,12 +19,11 @@ def last_session():
     print(result)
     return result
     
-def format(step):
-    if step.role == 'system': return f"*{step.content}*"
-    if step.role == 'user': return f"**{step.content}**"
-    return step.content
+def markdown_for_step(step):
+    return MarkdownViewer(format(step.content), classes='role_' + step.role)
 
 class Tui(App):
+    CSS_PATH = "tui.css"
     BINDINGS = [
         Binding('ctrl+c,ctrl+q', "app.quit", "Quit", show=True)
     ]
@@ -31,24 +32,28 @@ class Tui(App):
         super().__init__()
         self.session = session
 
-    @property   
-    def input(self) -> MarkdownViewer:   
-        """Get the Markdown widget."""
-        return self.query_one(Input)
+    @property
+    def scrollview(self):
+        return self.query_one(ScrollView)
 
     @property   
-    def markdown_viewer(self) -> MarkdownViewer:   
-        """Get the Markdown widget."""
-        return self.query_one(MarkdownViewer)
+    def input(self):   
+        return self.query_one(Input)
 
     def compose(self):
         yield Footer()
-        yield MarkdownViewer()
         yield Input(placeholder="Prompt")
 
     async def on_mount(self) -> None:                                           
-        doc = "\n\n".join(format(step) for step in self.session.session)
-        await self.markdown_viewer.document.update(doc)
+        try:
+            self.mount_all([markdown_for_step(step) for step in self.session.session])
+        except Exception as e:
+            with open("/tmp/fnord", "wt") as f:
+                print("oops", file=f)
+                print(e, file=f)
+                traceback.print_exception(type(e), e, e.__traceback__, file=f)
+            raise
+        #self.scrollview.scroll_y = self.scrollview.get_content_height()
         self.input.focus()                                            
 
     async def on_input_submitted(self, event) -> None:
@@ -57,18 +62,7 @@ class Tui(App):
             self.input.value = ""
         doc = "\n\n".join(format(step) for step in self.session.session)
         self.input.value = ""
-        await self.markdown_viewer.document.update(doc)
-
-    async def on_input_submitted_bad(self, event) -> None:
-        result = ask(event.value)
-        if result is not None:
-            self.input.value = ""
-#        self.session.session.extend([
-#                User(event.value),
-#                Assistant("I'm a little teacup")
-#                ])
-            doc = "\n\n".join(format(step) for step in self.session.session)
-            await self.markdown_viewer.document.update(doc)
+        self.mount_all([markdown_for_step(step) for step in self.session.session[-2:]])
 
 @click.command
 @click.option('--continue-session', '-s', type=click.Path(exists=True), default=None)
