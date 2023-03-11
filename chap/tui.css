@@ -1,0 +1,15 @@
+MarkdownViewer { height: auto; }
+.role_system { 
+    text-style: italic;
+}
+.role_user {
+    text-style: bold;
+}
+Footer { dock: top; }
+Input {
+    dock: bottom;
+}
+
+Markdown {
+    margin: 0 0 0 1;
+}
