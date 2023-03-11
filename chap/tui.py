@@ -21,7 +21,7 @@ def last_session():
     return result
     
 def markdown_for_step(step):
-    return MarkdownViewer(step.content.strip(), classes='role_' + step.role)
+    return MarkdownViewer(step.content.strip(), classes='role_' + step.role, show_table_of_contents=False)
 
 class Tui(App):
     CSS_PATH = "tui.css"

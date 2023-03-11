@@ -5,6 +5,8 @@ MarkdownViewer { height: auto; }
 .role_user {
     text-style: bold;
 }
+MarkdownViewer:focus-within { border-left: heavy green; }
+MarkdownViewer { border-left: heavy transparent; }
 Footer { dock: top; }
 Input {
     dock: bottom;
