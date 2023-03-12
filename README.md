@@ -5,6 +5,8 @@ SPDX-License-Identifier: MIT
 -->
 # chap - A Python interface to chatgpt, including a terminal user interface (tui)
 
+![Chap screencast](chap.gif)
+
 ## installation
 
 Install with e.g., `pipx install .`
