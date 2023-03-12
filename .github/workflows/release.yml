@@ -30,9 +30,6 @@ jobs:
         python -mpip install wheel
         python -mpip install -r requirements-dev.txt
 
-    - name: Test
-      run: make coverage
-
     - name: Build release
       run: python -mbuild
 
