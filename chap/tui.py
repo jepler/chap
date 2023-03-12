@@ -1,6 +1,7 @@
-import sys
-import os
 import datetime
+import os
+import subprocess
+import sys
 
 import platformdirs
 import click
@@ -26,7 +27,8 @@ def markdown_for_step(step):
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding('ctrl+c,ctrl+q', "app.quit", "Quit", show=True)
+        Binding('ctrl+y', "yank", "Yank text", show=True),
+        Binding('ctrl+c,ctrl+q', "app.quit", "Quit", show=True),
     ]
 
     def __init__(self, session):
@@ -75,6 +77,15 @@ class Tui(App):
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
+
+    def action_yank(self):
+        self.input.value = f"yank"
+        widget = self.focused
+        self.input.value = f"{widget=}"
+        if isinstance(widget, MarkdownViewer):
+            content = widget._markdown
+            self.input.value += f" {content=}"
+            subprocess.run(["xsel", "-ib"], input=content.encode('utf-8'))
 
 @click.command
 @click.option('--continue-session', '-s', type=click.Path(exists=True), default=None)
