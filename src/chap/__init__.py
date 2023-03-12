@@ -9,7 +9,6 @@ import sys
 
 import httpx
 import platformdirs
-import rich
 
 from .key import get_key
 from .session import Assistant, Message, Session, User
@@ -98,95 +97,3 @@ async def aask(session, query, *, max_query_size=5):
                 return
 
     session.session.extend([User(query), Assistant("".join(new_content))])
-
-
-if sys.stdout.isatty():
-    bold = "\033[1m"
-    nobold = "\033[m"
-else:
-    bold = nobold = ""
-
-
-def ipartition(s, sep):
-    rest = s
-    while rest:
-        first, opt_sep, rest = rest.partition(sep)
-        yield (first, opt_sep)
-
-
-class WrappingPrinter:
-    def __init__(self, width=None):
-        self._width = width or rich.get_console().width
-        print(f"{self._width=}")
-        self._column = 0
-        self._line = ""
-        self._sp = ""
-
-    def raw(self, s):
-        print(s, end="")
-
-    def add(self, s):
-        for line, opt_nl in ipartition(s, "\n"):
-            for word, opt_sp in ipartition(line, " "):
-                newlen = len(self._line) + len(self._sp) + len(word)
-                #                print(f"{self._line=} {newlen=}")
-                if not self._line or (newlen <= self._width):
-                    #                    print(self._line, f"# {len(self._line)} {self._width}")
-                    self._line += self._sp + word
-                    self._sp = opt_sp
-                else:
-                    #                    print(self._line, f"# {len(self._line)} {self._width}")
-                    if not self._sp and " " in self._line:
-                        old_len = len(self._line)
-                        self._line, _, partial = self._line.rpartition(" ")
-                        print("\r" + self._line + " " * (old_len - len(self._line)))
-                        self._line = partial + word
-                    else:
-                        print()
-                        # print(self._line)
-                        self._line = word
-                    self._sp = opt_sp
-                print("\r" + self._line, end="")
-            #                print(f"## {self._line=!r}")
-            if opt_nl:
-                print()
-                self._line = ""
-
-
-#        rest = s
-#        while rest:
-#            first, nl, rest = s.partition('\n')
-#            wrest = first
-#            while wrest:
-#                word, sp, wrest = wrest.partition(' ')
-#                if self._column + len(self._sp) + len(word) > self._width:
-#                    print()
-#                    self._sp = ''
-#                    self._column = 0
-#                print(self._sp+word, end='', flush=True)
-#                self._column += len(word) + len(self._sp)
-#                self._sp = sp
-#            if nl:
-#                self._sp = ''
-#                print()
-#                self._column = 0
-
-
-def verbose_ask(session, q, **kw):
-    printer = WrappingPrinter()
-    tokens = []
-
-    async def work():
-        async for token in aask(session, q, **kw):
-            printer.add(token)
-
-    printer.raw(bold)
-    printer.add(q)
-    printer.raw(nobold)
-    printer.add("\n")
-    printer.add("\n")
-    asyncio.run(work())
-    printer.add("\n")
-    printer.add("\n")
-    result = "".join(tokens)
-    return result
