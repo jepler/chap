@@ -26,10 +26,11 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
 Details of session handling & commandline arguments are in flux.
 
-By default, a new session is created. It is saved to the user's cache directory (e.g., ~/.cache
-on linux/unix systems).
+By default, a new session is created. It is saved to the user's state directory
+(e.g., `~/.local/state/chap` on linux/unix systems).
 
-You can specify the session filename for a new session with `-n` or to re-open an existing
-session with `-s`. Or, you can continue the last session with `--last`.
+You can specify the session filename for a new session with `-n` or to re-open
+an existing session with `-s`. Or, you can continue the last session with
+`--last`.
 
 You can set the "system message" with the `-S` flag.

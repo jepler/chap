@@ -2,13 +2,32 @@
 #
 # SPDX-License-Identifier: MIT
 
+import datetime
 import json
 import sys
 
 import httpx
+import platformdirs
 
 from .key import get_key
 from .session import Assistant, Message, Session, User
+
+conversations_path = platformdirs.user_state_path("chap") / "conversations"
+conversations_path.mkdir(parents=True, exist_ok=True)
+
+
+def last_session_path():
+    result = max(
+        conversations_path.glob("*.json"), key=lambda p: p.stat().st_mtime, default=None
+    )
+    print(result)
+    return result
+
+
+def new_session_path(opt_path=None):
+    return opt_path or conversations_path / (
+        datetime.datetime.now().isoformat().replace(":", "_") + ".json"
+    )
 
 
 def ask(session, query, *, max_query_size=5, timeout=60):

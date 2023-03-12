@@ -2,21 +2,12 @@
 #
 # SPDX-License-Identifier: MIT
 
-import datetime
+import sys
 
 import click
-import platformdirs
 
-from . import verbose_ask
+from . import last_session_path, new_session_path, verbose_ask
 from .session import Session
-
-
-def last_session():
-    result = max(
-        platformdirs.user_cache_path().glob("*.json"), key=lambda p: p.stat().st_mtime
-    )
-    print(result)
-    return result
 
 
 @click.command
@@ -32,16 +23,13 @@ def main(continue_session, last, new_session, system_message, prompt):
         )
 
     if last:
-        continue_session = last_session()
+        continue_session = last_session_path()
     if continue_session:
         session_filename = continue_session
         with open(session_filename, "r", encoding="utf-8") as f:
             session = Session.from_json(f.read())  # pylint: disable=no-member
     else:
-        session_filename = new_session or platformdirs.user_cache_path() / (
-            datetime.datetime.now().isoformat().replace(":", "_") + ".json"
-        )
-        print(f"note: Session is in {session_filename}")
+        session_filename = new_session_path(new_session)
         if system_message:
             session = Session.new_session(system_message)
         else:
@@ -51,6 +39,7 @@ def main(continue_session, last, new_session, system_message, prompt):
 
     response = verbose_ask(session, " ".join(prompt))
 
+    print(f"Saving session to {session_filename}", file=sys.stderr)
     if response is not None:
         with open(session_filename, "w", encoding="utf-8") as f:
             f.write(session.to_json())

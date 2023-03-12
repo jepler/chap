@@ -2,26 +2,17 @@
 #
 # SPDX-License-Identifier: MIT
 
-import datetime
 import subprocess
+import sys
 
 import click
-import platformdirs
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, Input, MarkdownViewer
 
-from . import Assistant, User, aask
+from . import Assistant, User, aask, last_session_path, new_session_path
 from .session import Session
-
-
-def last_session():
-    result = max(
-        platformdirs.user_cache_path().glob("*.json"), key=lambda p: p.stat().st_mtime
-    )
-    print(result)
-    return result
 
 
 def markdown_for_step(step):
@@ -104,16 +95,13 @@ def main(continue_session, last, new_session, system_message):
         )
 
     if last:
-        continue_session = last_session()
+        continue_session = last_session_path()
     if continue_session:
         session_filename = continue_session
         with open(session_filename, "r", encoding="utf-8") as f:
             session = Session.from_json(f.read())  # pylint: disable=no-member
     else:
-        session_filename = new_session or platformdirs.user_cache_path() / (
-            datetime.datetime.now().isoformat().replace(":", "_") + ".json"
-        )
-        print(f"note: Session is in {session_filename}")
+        session_filename = new_session_path(new_session)
         if system_message:
             session = Session.new_session(system_message)
         else:
@@ -122,7 +110,11 @@ def main(continue_session, last, new_session, system_message):
     tui = Tui(session)
     tui.run()
 
-    print("saving session")
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    print(f"Saving session to {session_filename}", file=sys.stderr)
+
     with open(session_filename, "w", encoding="utf-8") as f:
         f.write(session.to_json())
 
