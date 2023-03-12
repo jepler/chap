@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2020 Diego Elio Pettenò
+#
+# SPDX-License-Identifier: Unlicense
+
+default_language_version:
+  python: python3
+
+repos:
+- repo: https://github.com/psf/black
+  rev: 23.1.0
+  hooks:
+  - id: black
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  -   id: check-yaml
+  -   id: end-of-file-fixer
+      exclude: tests
+  -   id: trailing-whitespace
+      exclude: tests
+- repo: https://github.com/fsfe/reuse-tool
+  rev: v1.1.2
+  hooks:
+  - id: reuse
+- repo: https://github.com/pycqa/pylint
+  rev: v2.16.2
+  hooks:
+  - id: pylint
+    additional_dependencies: [click,dataclasses_json,httpx,textual]
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0
+  hooks:
+    - id: isort
+      name: isort (python)
+      args: ['--profile', 'black']

@@ -1,5 +1,11 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Jeff Epler <jepler@gmail.com>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 MarkdownViewer { height: auto; }
-.role_system { 
+.role_system {
     text-style: italic;
 }
 .role_user {

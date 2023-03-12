@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Jeff Epler <jepler@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+[MESSAGES CONTROL]
+disable=duplicate-code,invalid-name,missing-function-docstring,missing-module-docstring,line-too-long,missing-class-docstring
