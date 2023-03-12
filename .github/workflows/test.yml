@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2021 Jeff Epler
+#
+# SPDX-License-Identifier: MIT
+
+name: Test
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+  check_suite:
+    types: [rerequested]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-22.04
+    steps:
+
+    - uses: actions/checkout@v3
+
+    - name: pre-commit
+      uses: pre-commit/action@v3.0.0
+
+    - name: Make patch
+      if: failure()
+      run: git diff > ~/pre-commit.patch
+
+    - name: Upload patch
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: patch
+        path: ~/pre-commit.patch
+
+  test-release:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: install deps
+      run: pip install -r requirements-dev.txt
+
+    - name: Build release
+      run: python -mbuild
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/*

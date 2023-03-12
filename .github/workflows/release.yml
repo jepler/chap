@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2021 Jeff Epler
+#
+# SPDX-License-Identifier: MIT
+
+name: Release chap
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
+
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install deps
+      run: |
+        python -mpip install wheel
+        python -mpip install -r requirements-dev.txt
+
+    - name: Test
+      run: make coverage
+
+    - name: Build release
+      run: python -mbuild
+
+    - name: Upload release
+      run: twine upload -u "$TWINE_USERNAME" -p "$TWINE_PASSWORD" dist/*
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.pypi_token }}

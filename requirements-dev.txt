@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Jeff Epler
+#
+# SPDX-License-Identifier: MIT
+
+build
+setuptools>=45
+wheel
