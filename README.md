@@ -11,6 +11,10 @@ SPDX-License-Identifier: MIT
 
 Install with e.g., `pipx install .`
 
+## configuration
+
+Put your OpenAI API key in the platform configuration directory for chap, e.g., on linux/unix systems at `~/.config/chap/openai_api_key`
+
 ## commandline usage
 
  * chap-cli "What advice would you give a 20th century human visiting the 21st century for the first time?
