@@ -75,7 +75,7 @@ class Tui(App):
             async for token in aask(self.session, event.value):
                 tokens.append(token)
                 await output.document.update("".join(tokens))
-                self.scroll_end()
+                self.container.scroll_end()
             self.input.value = ""
         finally:
             self.input.disabled=False
