@@ -5,6 +5,7 @@
 import asyncio
 import datetime
 import json
+import random
 import sys
 
 import httpx
@@ -62,7 +63,13 @@ def ask(session, query, *, max_query_size=5, timeout=60):
     return result
 
 
-async def aask(session, query, *, max_query_size=5):
+async def aask(session, query, *, max_query_size=5, dummy=False):
+    if dummy:
+        for i in range(100):
+            await asyncio.sleep(0.01)
+            yield f"Token {i} {'a' * random.randint(2,9)} "
+        return
+
     full_prompt = Session(session.session + [User(query)])
     del full_prompt.session[1:-max_query_size]
 

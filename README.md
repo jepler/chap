@@ -17,7 +17,9 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
 ## commandline usage
 
- * chap-cli "What advice would you give a 20th century human visiting the 21st century for the first time?
+ * chap-cli "What advice would you give a 20th century human visiting the 21st century for the first time?"
+
+ * chap-render --last
 
 ## interactive terminal usage
  * chap-tui
