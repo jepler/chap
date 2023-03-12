@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2021 Jeff Epler
+#
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = [
+    "click",
+    "dataclasses_json",
+    "httpx",
+    "platformdirs",
+    "setuptools>=45",
+    "setuptools_scm[toml]>=6.0",
+    "textual",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+[tool.setuptools_scm]
+write_to = "src/chap/__version__.py"

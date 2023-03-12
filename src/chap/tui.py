@@ -79,6 +79,7 @@ class Tui(App):
                 self.container.scroll_end()
             self.input.value = ""
         finally:
+            output._markdown = "".join(tokens)  # pylint: disable=protected-access
             self.input.disabled = False
 
     def scroll_end(self):
