@@ -13,7 +13,7 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, MarkdownViewer, Input
 
-from . import ask, User, Assistant
+from . import aask, User, Assistant
 from .session import Session
 
 def last_session():
@@ -67,13 +67,18 @@ class Tui(App):
 
     async def on_input_submitted(self, event) -> None:
         self.scroll_end()
-        result = ask(self.session, event.value)
-        if result is not None:
+        self.input.disabled=True
+        self.container.mount_all([markdown_for_step(User(event.value)),
+            output := markdown_for_step(Assistant("*query sent*"))])
+        tokens = []
+        try:
+            async for token in aask(self.session, event.value):
+                tokens.append(token)
+                await output.document.update("".join(tokens))
+                self.scroll_end()
             self.input.value = ""
-        doc = "\n\n".join(format(step) for step in self.session.session)
-        self.input.value = ""
-        self.container.mount_all([markdown_for_step(step) for step in self.session.session[-2:]])
-        self.scroll_end()
+        finally:
+            self.input.disabled=False
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
