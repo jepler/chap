@@ -28,7 +28,6 @@ def ipartition(s, sep):
 class WrappingPrinter:
     def __init__(self, width=None):
         self._width = width or rich.get_console().width
-        print(f"{self._width=}")
         self._column = 0
         self._line = ""
         self._sp = ""
@@ -40,13 +39,10 @@ class WrappingPrinter:
         for line, opt_nl in ipartition(s, "\n"):
             for word, opt_sp in ipartition(line, " "):
                 newlen = len(self._line) + len(self._sp) + len(word)
-                #                print(f"{self._line=} {newlen=}")
                 if not self._line or (newlen <= self._width):
-                    #                    print(self._line, f"# {len(self._line)} {self._width}")
                     self._line += self._sp + word
                     self._sp = opt_sp
                 else:
-                    #                    print(self._line, f"# {len(self._line)} {self._width}")
                     if not self._sp and " " in self._line:
                         old_len = len(self._line)
                         self._line, _, partial = self._line.rpartition(" ")
@@ -54,11 +50,9 @@ class WrappingPrinter:
                         self._line = partial + word
                     else:
                         print()
-                        # print(self._line)
                         self._line = word
                     self._sp = opt_sp
                 print("\r" + self._line, end="")
-            #                print(f"## {self._line=!r}")
             if opt_nl:
                 print()
                 self._line = ""
