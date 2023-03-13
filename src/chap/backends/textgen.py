@@ -9,7 +9,7 @@ import uuid
 import websockets
 
 from ..key import get_key
-from ..session import Assistant, User
+from ..session import Assistant, Session, User
 
 
 class Lorem:
@@ -36,7 +36,12 @@ class Lorem:
         }
         session_hash = str(uuid.uuid4())
 
-        old_data = query + "\n\n"
+        full_prompt = Session(session.session + [User(query)])
+        del full_prompt.session[1:-max_query_size]
+        old_data = full_query = (
+            "\n\n".join(q.content for q in full_prompt.session) + "\n\n"
+        )
+        print(f"note: full_query =\n###\n{full_query}\n###")
         async with websockets.connect(  # pylint: disable=no-member
             f"ws://{self.server}:7860/queue/join"
         ) as websocket:
@@ -54,7 +59,7 @@ class Lorem:
                                 "session_hash": session_hash,
                                 "fn_index": 7,
                                 "data": [
-                                    query,
+                                    full_query,
                                     params["max_new_tokens"],
                                     params["do_sample"],
                                     params["temperature"],
