@@ -26,7 +26,7 @@ repos:
   rev: v2.17.0
   hooks:
   - id: pylint
-    additional_dependencies: [click,dataclasses_json,httpx,textual]
+    additional_dependencies: [click,dataclasses_json,httpx,lorem-text,textual]
     args: ['--source-roots', 'src']
 - repo: https://github.com/pycqa/isort
   rev: 5.12.0
