@@ -8,7 +8,7 @@ import sys
 import click
 import rich
 
-from ..core import aask, last_session_path, new_session_path
+from ..core import get_api, last_session_path, new_session_path
 from ..session import Session
 
 if sys.stdout.isatty():
@@ -59,12 +59,12 @@ class WrappingPrinter:
                 self._sp = ""
 
 
-def verbose_ask(session, q, **kw):
+def verbose_ask(api, session, q, **kw):
     printer = WrappingPrinter()
     tokens = []
 
     async def work():
-        async for token in aask(session, q, **kw):
+        async for token in api.aask(session, q, **kw):
             printer.add(token)
 
     printer.raw(bold)
@@ -84,8 +84,11 @@ def verbose_ask(session, q, **kw):
 @click.option("--last", is_flag=True)
 @click.option("--new-session", "-n", type=click.Path(exists=False), default=None)
 @click.option("--system-message", "-S", type=str, default=None)
+@click.option("--backend", "-b", type=str, default="openai_chatgpt")
 @click.argument("prompt", nargs=-1, required=True)
-def main(continue_session, last, new_session, system_message, prompt):
+def main(
+    continue_session, last, new_session, system_message, prompt, backend
+):  # pylint: disable=too-many-arguments
     if bool(continue_session) + bool(last) + bool(new_session) > 1:
         raise SystemExit(
             "--continue-session, --last and --new_session are mutually exclusive"
@@ -104,9 +107,10 @@ def main(continue_session, last, new_session, system_message, prompt):
         else:
             session = Session.new_session()
 
+    api = get_api(backend)
     #    symlink_session_filename(session_filename)
 
-    response = verbose_ask(session, " ".join(prompt))
+    response = verbose_ask(api, session, " ".join(prompt))
 
     print(f"Saving session to {session_filename}", file=sys.stderr)
     if response is not None:

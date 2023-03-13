@@ -11,8 +11,8 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, Input, MarkdownViewer
 
-from ..core import Assistant, User, aask, last_session_path, new_session_path
-from ..session import Session
+from ..core import get_api, last_session_path, new_session_path
+from ..session import Assistant, Session, User
 
 
 def markdown_for_step(step):
@@ -28,8 +28,9 @@ class Tui(App):
         Binding("ctrl+c,ctrl+q", "app.quit", "Quit", show=True),
     ]
 
-    def __init__(self, session):
+    def __init__(self, api, session):
         super().__init__()
+        self.api = api
         self.session = session
 
     @property
@@ -56,7 +57,7 @@ class Tui(App):
     async def on_input_submitted(self, event) -> None:
         self.scroll_end()
         self.input.disabled = True
-        self.container.mount_all(
+        await self.container.mount_all(
             [
                 markdown_for_step(User(event.value)),
                 output := markdown_for_step(Assistant("*query sent*")),
@@ -64,7 +65,7 @@ class Tui(App):
         )
         tokens = []
         try:
-            async for token in aask(self.session, event.value):
+            async for token in self.api.aask(self.session, event.value):
                 tokens.append(token)
                 await output.document.update("".join(tokens))
                 self.container.scroll_end()
@@ -88,7 +89,8 @@ class Tui(App):
 @click.option("--last", is_flag=True)
 @click.option("--new-session", "-n", type=click.Path(exists=False), default=None)
 @click.option("--system-message", "-S", type=str, default=None)
-def main(continue_session, last, new_session, system_message):
+@click.option("--backend", "-b", type=str, default="openai_chatgpt")
+def main(continue_session, last, new_session, system_message, backend):
     if bool(continue_session) + bool(last) + bool(new_session) > 1:
         raise SystemExit(
             "--continue-session, --last and --new_session are mutually exclusive"
@@ -107,7 +109,9 @@ def main(continue_session, last, new_session, system_message):
         else:
             session = Session.new_session()
 
-    tui = Tui(session)
+    api = get_api(backend)
+
+    tui = Tui(api, session)
     tui.run()
 
     sys.stdout.flush()
