@@ -47,7 +47,7 @@ class Tui(App):
         yield Container()
 
     async def on_mount(self) -> None:
-        self.container.mount_all(
+        await self.container.mount_all(
             [markdown_for_step(step) for step in self.session.session]
         )
         # self.scrollview.scroll_y = self.scrollview.get_content_height()
