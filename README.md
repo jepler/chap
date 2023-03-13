@@ -36,3 +36,8 @@ an existing session with `-s`. Or, you can continue the last session with
 `--last`.
 
 You can set the "system message" with the `-S` flag.
+
+You can select the text generating backend with the `-b` flag:
+ * openai\_chatgpt: the default, paid API, best quality results
+ * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models, basic and low quality. Needs the server URL in *$configuration_directory/textgen\_url*.
+ * lorem: local non-AI lorem generator for testing
