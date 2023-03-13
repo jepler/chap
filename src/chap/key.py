@@ -11,15 +11,16 @@ class NoKeyAvailable(Exception):
     pass
 
 
-_key_path = platformdirs.user_config_path("chap") / "openai_api_key"
+_key_path_base = platformdirs.user_config_path("chap")
 
 
 @functools.cache
-def get_key():
-    if not _key_path.exists():
+def get_key(name):
+    key_path = _key_path_base / name
+    if not key_path.exists():
         raise NoKeyAvailable(
-            f"Place your openai api key in {_key_path} and run the program again"
+            f"Place your openai api key in {key_path} and run the program again"
         )
 
-    with open(_key_path, encoding="utf-8") as f:
+    with open(key_path, encoding="utf-8") as f:
         return f.read().strip()
