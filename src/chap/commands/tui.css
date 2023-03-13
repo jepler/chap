@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-MarkdownViewer { height: auto; }
+MarkdownViewer { height: auto; scrollbar-gutter: auto; }
 .role_system {
     text-style: italic;
 }
