@@ -57,12 +57,8 @@ class Tui(App):
     async def on_input_submitted(self, event) -> None:
         self.scroll_end()
         self.input.disabled = True
-        await self.container.mount_all(
-            [
-                markdown_for_step(User(event.value)),
-                output := markdown_for_step(Assistant("*query sent*")),
-            ]
-        )
+        output = markdown_for_step(Assistant("*query sent*"))
+        await self.container.mount_all([markdown_for_step(User(event.value)), output])
         tokens = []
         try:
             async for token in self.api.aask(self.session, event.value):
