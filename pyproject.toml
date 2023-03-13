@@ -4,16 +4,47 @@
 
 [build-system]
 requires = [
+    "setuptools>=61",
+    "setuptools_scm[toml]>=6.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name="chap"
+authors = [{name = "Jeff Epler", email = "jepler@gmail.com"}]
+description = "Interact with the OpenAI ChatGPT API (and other text generators)"
+dynamic = ["readme","version"]
+dependencies = [
     "click",
     "dataclasses_json",
     "httpx",
     "lorem-text",
     "platformdirs",
-    "setuptools>=45",
-    "setuptools_scm[toml]>=6.0",
     "textual",
-    "wheel",
+    "websockets",
 ]
-build-backend = "setuptools.build_meta"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+[project.urls]
+homepage = "https://github.com/jepler/chap"
+repository = "https://github.com/jepler/chap"
+
+[project.scripts]
+chap = "chap.__main__:main"
+
 [tool.setuptools_scm]
 write_to = "src/chap/__version__.py"
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"]}

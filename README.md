@@ -26,7 +26,7 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
 ## Sessions & Commandline Parameters
 
-Details of session handling & commandline arguments are in flux. For now, the deprecated `chap-ask`, `chap-render` and `chap-tui` are still supported but they will be removed in the future.
+Details of session handling & commandline arguments are in flux.
 
 By default, a new session is created. It is saved to the user's state directory
 (e.g., `~/.local/state/chap` on linux/unix systems).
