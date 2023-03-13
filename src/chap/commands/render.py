@@ -6,8 +6,8 @@ import click
 import rich
 from rich.markdown import Markdown
 
-from . import last_session_path
-from .session import Session
+from ..core import last_session_path
+from ..session import Session
 
 
 @click.command

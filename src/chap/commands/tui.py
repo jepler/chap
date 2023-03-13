@@ -11,8 +11,8 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.widgets import Footer, Input, MarkdownViewer
 
-from . import Assistant, User, aask, last_session_path, new_session_path
-from .session import Session
+from ..core import Assistant, User, aask, last_session_path, new_session_path
+from ..session import Session
 
 
 def markdown_for_step(step):

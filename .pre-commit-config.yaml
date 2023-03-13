@@ -23,10 +23,11 @@ repos:
   hooks:
   - id: reuse
 - repo: https://github.com/pycqa/pylint
-  rev: v2.16.2
+  rev: v2.17.0
   hooks:
   - id: pylint
     additional_dependencies: [click,dataclasses_json,httpx,textual]
+    args: ['--source-roots', 'src']
 - repo: https://github.com/pycqa/isort
   rev: 5.12.0
   hooks:

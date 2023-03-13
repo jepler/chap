@@ -6,13 +6,12 @@ import asyncio
 import datetime
 import json
 import random
-import sys
 
 import httpx
 import platformdirs
 
 from .key import get_key
-from .session import Assistant, Message, Session, User
+from .session import Assistant, Session, User
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
