@@ -3,13 +3,17 @@ SPDX-FileCopyrightText: 2021 Jeff Epler
 
 SPDX-License-Identifier: MIT
 -->
+[![Test](https://github.com/jepler/chap/actions/workflows/test.yml/badge.svg)](https://github.com/jepler/chap/actions/workflows/test.yml)
+[![Release chap](https://github.com/jepler/chap/actions/workflows/release.yml/badge.svg?event=release)](https://github.com/jepler/chap/actions/workflows/release.yml)
+[![PyPI](https://img.shields.io/pypi/v/chap)](https://pypi.org/project/chap/)
+
 # chap - A Python interface to chatgpt, including a terminal user interface (tui)
 
 ![Chap screencast](https://github.com/jepler/chap/blob/main/chap.gif)
 
 ## installation
 
-Install with e.g., `pipx install .`
+Install with e.g., `pipx install chap`
 
 ## configuration
 
