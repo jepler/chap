@@ -12,13 +12,20 @@ from ..key import get_key
 from ..session import Assistant, Session, User
 
 
-class Lorem:
+class Textgen:
     def __init__(self):
         self.server = get_key("textgen_url", "textgen server URL")
 
+    system_message = """\
+A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, and knows its own limits.
+
+USER: Hello, AI.
+
+AI: Hello! How can I assist you today?"""
+
     async def aask(
         self, session, query, *, max_query_size=5, timeout=60
-    ):  # pylint: disable=unused-argument
+    ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
         params = {
             "max_new_tokens": 200,
             "do_sample": True,
@@ -36,12 +43,18 @@ class Lorem:
         }
         session_hash = str(uuid.uuid4())
 
+        role_map = {
+            "user": "USER: ",
+            "assistant": "AI: ",
+        }
         full_prompt = Session(session.session + [User(query)])
         del full_prompt.session[1:-max_query_size]
         old_data = full_query = (
-            "\n\n".join(q.content for q in full_prompt.session) + "\n\n"
+            "\n".join(
+                f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt.session
+            )
+            + f"\n{role_map.get('assistant')}"
         )
-        print(f"note: full_query =\n###\n{full_query}\n###")
         async with websockets.connect(  # pylint: disable=no-member
             f"ws://{self.server}:7860/queue/join"
         ) as websocket:
@@ -81,14 +94,32 @@ class Lorem:
                     pass
                 if content["msg"] in ("process_generating", "process_completed"):
                     new_data = content["output"]["data"][0]
-                    yield new_data[len(old_data) :]
-                    old_data = new_data
+                    all_response = new_data[len(full_query) :]
+                    if "USER:" in all_response:
+                        new_data = new_data[
+                            : len(full_query) + all_response.find("USER:")
+                        ]
+                        content["msg"] = "process_completed"
+                    elif new_data.endswith("USER"):
+                        new_data = new_data.removesuffix("USER")
+                    elif new_data.endswith("USE"):
+                        new_data = new_data.removesuffix("USE")
+                    elif new_data.endswith("US"):
+                        new_data = new_data.removesuffix("US")
+                    elif new_data.endswith("U"):
+                        new_data = new_data.removesuffix("U")
+
+                    delta = new_data[len(old_data) :]
+                    if delta:
+                        yield delta
+                        old_data = new_data
                     # You can search for your desired end indicator and
                     #  stop generation by closing the websocket here
                     if content["msg"] == "process_completed":
                         break
 
-        session.session.extend([User(query), Assistant(new_data)])
+        all_response = new_data[len(full_query) :]
+        session.session.extend([User(query), Assistant(all_response)])
 
     def ask(self, session, query, *, max_query_size=5, timeout=60):
         asyncio.run(
@@ -98,4 +129,4 @@ class Lorem:
 
 
 def factory():
-    return Lorem()
+    return Textgen()

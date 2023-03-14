@@ -14,6 +14,8 @@ class ChatGPT:
     def __init__(self):
         pass
 
+    system_message: str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language."
+
     def ask(self, session, query, *, max_query_size=5, timeout=60):
         full_prompt = Session(session.session + [User(query)])
         del full_prompt.session[1:-max_query_size]

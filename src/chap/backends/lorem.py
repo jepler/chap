@@ -18,6 +18,10 @@ def ipartition(s, sep=" "):
 
 
 class Lorem:
+    system_message = (
+        "(It doesn't matter what you ask, this backend will respond with lorem)"
+    )
+
     async def aask(self, session, query, *, max_query_size=5, timeout=60):
         data = self.ask(session, query, max_query_size=max_query_size, timeout=timeout)
         for word, opt_sep in ipartition(data):

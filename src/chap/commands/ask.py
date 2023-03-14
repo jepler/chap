@@ -94,6 +94,8 @@ def main(
             "--continue-session, --last and --new_session are mutually exclusive"
         )
 
+    api = get_api(backend)
+
     if last:
         continue_session = last_session_path()
     if continue_session:
@@ -102,12 +104,8 @@ def main(
             session = Session.from_json(f.read())  # pylint: disable=no-member
     else:
         session_filename = new_session_path(new_session)
-        if system_message:
-            session = Session.new_session(system_message)
-        else:
-            session = Session.new_session()
+        session = Session.new_session(system_message or api.system_message)
 
-    api = get_api(backend)
     #    symlink_session_filename(session_filename)
 
     response = verbose_ask(api, session, " ".join(prompt))

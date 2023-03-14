@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import asyncio
 import subprocess
 import sys
 
@@ -17,7 +18,9 @@ from ..session import Assistant, Session, User
 
 def markdown_for_step(step):
     return MarkdownViewer(
-        step.content.strip(), classes="role_" + step.role, show_table_of_contents=False
+        step.content.strip().replace("<", "&lt;"),
+        classes="role_" + step.role,
+        show_table_of_contents=False,
     )
 
 
@@ -25,7 +28,7 @@ class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
-        Binding("ctrl+c,ctrl+q", "app.quit", "Quit", show=True),
+        Binding("ctrl+q", "app.quit", "Quit", show=True),
     ]
 
     def __init__(self, api, session):
@@ -39,16 +42,16 @@ class Tui(App):
 
     @property
     def container(self):
-        return self.query_one(Container)
+        return self.query_one("#content")
 
     def compose(self):
         yield Footer()
         yield Input(placeholder="Prompt")
-        yield Container()
+        yield Container(Container(id="pad"), id="content")
 
     async def on_mount(self) -> None:
         await self.container.mount_all(
-            [markdown_for_step(step) for step in self.session.session]
+            [markdown_for_step(step) for step in self.session.session], before="#pad"
         )
         # self.scrollview.scroll_y = self.scrollview.get_content_height()
         self.scroll_end()
@@ -58,16 +61,36 @@ class Tui(App):
         self.scroll_end()
         self.input.disabled = True
         output = markdown_for_step(Assistant("*query sent*"))
-        await self.container.mount_all([markdown_for_step(User(event.value)), output])
+        await self.container.mount_all(
+            [markdown_for_step(User(event.value)), output], before="#pad"
+        )
         tokens = []
-        try:
+        update = asyncio.Queue(1)
+
+        async def render_fun():
+            while await update.get():
+                if tokens:
+                    await output.document.update("".join(tokens).replace("<", "&lt;"))
+                self.container.scroll_end()
+                await asyncio.sleep(0.1)
+
+        async def get_token_fun():
             async for token in self.api.aask(self.session, event.value):
                 tokens.append(token)
-                await output.document.update("".join(tokens))
-                self.container.scroll_end()
+                try:
+                    update.put_nowait(True)
+                except asyncio.QueueFull:
+                    pass
+            await update.put(False)
+
+        try:
+            await asyncio.gather(render_fun(), get_token_fun())
             self.input.value = ""
         finally:
-            output._markdown = "".join(tokens)  # pylint: disable=protected-access
+            all_output = self.session.session[-1].content.replace("<", "&lt;")
+            await output.document.update(all_output)
+            self.container.scroll_end()
+            output._markdown = all_output  # pylint: disable=protected-access
             self.input.disabled = False
 
     def scroll_end(self):
@@ -92,6 +115,8 @@ def main(continue_session, last, new_session, system_message, backend):
             "--continue-session, --last and --new_session are mutually exclusive"
         )
 
+    api = get_api(backend)
+
     if last:
         continue_session = last_session_path()
     if continue_session:
@@ -100,12 +125,7 @@ def main(continue_session, last, new_session, system_message, backend):
             session = Session.from_json(f.read())  # pylint: disable=no-member
     else:
         session_filename = new_session_path(new_session)
-        if system_message:
-            session = Session.new_session(system_message)
-        else:
-            session = Session.new_session()
-
-    api = get_api(backend)
+        session = Session.new_session(system_message or api.system_message)
 
     tui = Tui(api, session)
     tui.run()
