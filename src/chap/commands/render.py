@@ -28,7 +28,7 @@ def main(session, last):
         if not first:
             console.print()
         first = False
-        content = row.content
+        content = row.content.replace("<", "&lt;")
         role = row.role
         if role == "user":
             style = "bold"
