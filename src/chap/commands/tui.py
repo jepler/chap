@@ -10,17 +10,20 @@ import click
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container
-from textual.widgets import Footer, Input, MarkdownViewer
+from textual.widgets import Footer, Input, Markdown
 
 from ..core import get_api, last_session_path, new_session_path
 from ..session import Assistant, Session, User
 
 
+class Markdown(Markdown, can_focus=True):  # pylint: disable=function-redefined
+    pass
+
+
 def markdown_for_step(step):
-    return MarkdownViewer(
+    return Markdown(
         step.content.strip().replace("<", "&lt;"),
         classes="role_" + step.role,
-        show_table_of_contents=False,
     )
 
 
@@ -70,7 +73,7 @@ class Tui(App):
         async def render_fun():
             while await update.get():
                 if tokens:
-                    await output.document.update("".join(tokens).replace("<", "&lt;"))
+                    await output.update("".join(tokens).replace("<", "&lt;"))
                 self.container.scroll_end()
                 await asyncio.sleep(0.1)
 
@@ -88,7 +91,7 @@ class Tui(App):
             self.input.value = ""
         finally:
             all_output = self.session.session[-1].content.replace("<", "&lt;")
-            await output.document.update(all_output)
+            await output.update(all_output)
             self.container.scroll_end()
             output._markdown = all_output  # pylint: disable=protected-access
             self.input.disabled = False
@@ -98,7 +101,7 @@ class Tui(App):
 
     def action_yank(self):
         widget = self.focused
-        if isinstance(widget, MarkdownViewer):
+        if isinstance(widget, Markdown):
             content = widget._markdown  # pylint: disable=protected-access
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
