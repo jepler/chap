@@ -49,74 +49,79 @@ AI: Hello! How can I assist you today?"""
         }
         full_prompt = Session(session.session + [User(query)])
         del full_prompt.session[1:-max_query_size]
-        old_data = full_query = (
+        new_data = old_data = full_query = (
             "\n".join(
                 f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt.session
             )
             + f"\n{role_map.get('assistant')}"
         )
-        async with websockets.connect(  # pylint: disable=no-member
-            f"ws://{self.server}:7860/queue/join"
-        ) as websocket:
-            while content := json.loads(await websocket.recv()):
-                if content["msg"] == "send_hash":
-                    await websocket.send(
-                        json.dumps({"session_hash": session_hash, "fn_index": 7})
-                    )
-                if content["msg"] == "estimation":
-                    pass
-                if content["msg"] == "send_data":
-                    await websocket.send(
-                        json.dumps(
-                            {
-                                "session_hash": session_hash,
-                                "fn_index": 7,
-                                "data": [
-                                    full_query,
-                                    params["max_new_tokens"],
-                                    params["do_sample"],
-                                    params["temperature"],
-                                    params["top_p"],
-                                    params["typical_p"],
-                                    params["repetition_penalty"],
-                                    params["top_k"],
-                                    params["min_length"],
-                                    params["no_repeat_ngram_size"],
-                                    params["num_beams"],
-                                    params["penalty_alpha"],
-                                    params["length_penalty"],
-                                    params["early_stopping"],
-                                ],
-                            }
+        try:
+            async with websockets.connect(  # pylint: disable=no-member
+                f"ws://{self.server}:7860/queue/join"
+            ) as websocket:
+                while content := json.loads(await websocket.recv()):
+                    if content["msg"] == "send_hash":
+                        await websocket.send(
+                            json.dumps({"session_hash": session_hash, "fn_index": 7})
                         )
-                    )
-                if content["msg"] == "process_starts":
-                    pass
-                if content["msg"] in ("process_generating", "process_completed"):
-                    new_data = content["output"]["data"][0]
-                    all_response = new_data[len(full_query) :]
-                    if "USER:" in all_response:
-                        new_data = new_data[
-                            : len(full_query) + all_response.find("USER:")
-                        ]
-                        content["msg"] = "process_completed"
-                    elif new_data.endswith("USER"):
-                        new_data = new_data.removesuffix("USER")
-                    elif new_data.endswith("USE"):
-                        new_data = new_data.removesuffix("USE")
-                    elif new_data.endswith("US"):
-                        new_data = new_data.removesuffix("US")
-                    elif new_data.endswith("U"):
-                        new_data = new_data.removesuffix("U")
+                    if content["msg"] == "estimation":
+                        pass
+                    if content["msg"] == "send_data":
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "session_hash": session_hash,
+                                    "fn_index": 7,
+                                    "data": [
+                                        full_query,
+                                        params["max_new_tokens"],
+                                        params["do_sample"],
+                                        params["temperature"],
+                                        params["top_p"],
+                                        params["typical_p"],
+                                        params["repetition_penalty"],
+                                        params["top_k"],
+                                        params["min_length"],
+                                        params["no_repeat_ngram_size"],
+                                        params["num_beams"],
+                                        params["penalty_alpha"],
+                                        params["length_penalty"],
+                                        params["early_stopping"],
+                                    ],
+                                }
+                            )
+                        )
+                    if content["msg"] == "process_starts":
+                        pass
+                    if content["msg"] in ("process_generating", "process_completed"):
+                        new_data = content["output"]["data"][0]
+                        all_response = new_data[len(full_query) :]
+                        if "USER:" in all_response:
+                            new_data = new_data[
+                                : len(full_query) + all_response.find("USER:")
+                            ]
+                            content["msg"] = "process_completed"
+                        elif new_data.endswith("USER"):
+                            new_data = new_data.removesuffix("USER")
+                        elif new_data.endswith("USE"):
+                            new_data = new_data.removesuffix("USE")
+                        elif new_data.endswith("US"):
+                            new_data = new_data.removesuffix("US")
+                        elif new_data.endswith("U"):
+                            new_data = new_data.removesuffix("U")
 
-                    delta = new_data[len(old_data) :]
-                    if delta:
-                        yield delta
-                        old_data = new_data
-                    # You can search for your desired end indicator and
-                    #  stop generation by closing the websocket here
-                    if content["msg"] == "process_completed":
-                        break
+                        delta = new_data[len(old_data) :]
+                        if delta:
+                            yield delta
+                            old_data = new_data
+                        # You can search for your desired end indicator and
+                        #  stop generation by closing the websocket here
+                        if content["msg"] == "process_completed":
+                            break
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            content = f"\nException: {e!r}"
+            new_data += content
+            yield content
 
         all_response = new_data[len(full_query) :]
         session.session.extend([User(query), Assistant(all_response)])
