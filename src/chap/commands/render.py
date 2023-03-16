@@ -4,6 +4,7 @@
 
 import click
 import rich
+from markdown_it import MarkdownIt
 from rich.markdown import Markdown
 
 from ..core import last_session_path
@@ -28,7 +29,6 @@ def main(session, last):
         if not first:
             console.print()
         first = False
-        content = row.content.replace("<", "&lt;")
         role = row.role
         if role == "user":
             style = "bold"
@@ -36,7 +36,11 @@ def main(session, last):
             style = "italic"
         else:
             style = "none"
-        console.print(Markdown(content, style=style))
+        m = Markdown("", style=style)
+        parser = MarkdownIt()
+        parser.options["html"] = False
+        m.parsed = parser.parse(row.content)
+        console.print(m)
 
 
 if __name__ == "__main__":
