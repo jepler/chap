@@ -34,10 +34,10 @@ class Tui(App):
         Binding("ctrl+q", "app.quit", "Quit", show=True),
     ]
 
-    def __init__(self, api, session):
+    def __init__(self, api=None, session=None):
         super().__init__()
-        self.api = api
-        self.session = session
+        self.api = api or get_api("lorem")
+        self.session = session or Session.new_session(self.api.system_message)
 
     @property
     def input(self):
