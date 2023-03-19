@@ -21,7 +21,10 @@ class MyCLI(click.MultiCommand):
         return rv
 
     def get_command(self, ctx, cmd_name):
-        return importlib.import_module("." + cmd_name, commands.__name__).main
+        try:
+            return importlib.import_module("." + cmd_name, commands.__name__).main
+        except ModuleNotFoundError as exc:
+            raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
 
 main = MyCLI(help="Commandline interface to ChatGPT")
