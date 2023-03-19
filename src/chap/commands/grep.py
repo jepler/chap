@@ -16,10 +16,9 @@ from ..session import Message, Session
 from .render import to_markdown
 
 
-def list_files_matching_re(
-    pattern: str, ignorecase: bool = False, conversations_path: Optional[str] = None
+def list_files_matching_rx(
+    rx: re.Pattern, conversations_path: Optional[str] = None
 ) -> Iterable[Tuple[pathlib.Path, Message]]:
-    rx = re.compile(pattern, re.I if ignorecase else 0)
     for conversation in (conversations_path or default_conversations_path).glob(
         "*.json"
     ):
@@ -39,8 +38,9 @@ def main(ignore_case, fixed_strings, pattern):
     if fixed_strings:
         pattern = re.escape(pattern)
 
+    rx = re.compile(pattern, re.I if ignore_case else 0)
     last_file = None
-    for f, m in list_files_matching_re(pattern, ignore_case):
+    for f, m in list_files_matching_rx(rx, ignore_case):
         if f != last_file:
             if last_file:
                 print()
@@ -48,6 +48,7 @@ def main(ignore_case, fixed_strings, pattern):
             last_file = f
         else:
             console.print("[dim]---[nodim]")
+        m.content, _ = rx.subn(lambda p: f"**{p.group(0)}**", m.content)
         console.print(to_markdown(m))
 
 
