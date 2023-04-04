@@ -67,6 +67,7 @@ def main(output_directory, files):
     https://github.com/pionxzh/chatgpt-exporter though it only exports the
     'final version' of the conversation, not all the branches"""
 
+    output_directory.mkdir(parents=True, exist_ok=True)
     for f in files:
         do_import(output_directory, f)
 
