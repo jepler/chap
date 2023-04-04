@@ -29,6 +29,8 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
  * chap render --last
 
+ * chap import chatgpt-style-chatlog.json
+
 ## interactive terminal usage
  * chap tui
 
@@ -49,3 +51,9 @@ You can select the text generating backend with the `-b` flag:
  * openai\_chatgpt: the default, paid API, best quality results
  * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models, basic and low quality. Needs the server URL in *$configuration_directory/textgen\_url*.
  * lorem: local non-AI lorem generator for testing
+
+## Importing from ChatGPT
+
+The userscript https://github.com/pionxzh/chatgpt-exporter can export chat logs from chat.openai.com in a json format.
+This format is different than chap's, especially since chap currently only represents a single branch of conversation in one log.
+You can use the `chap import` command to import all the branches of a chatgpt-style chatlog in json format into a series of chap-style chat logs.
