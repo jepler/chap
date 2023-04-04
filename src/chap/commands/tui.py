@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 import click
+from markdown_it import MarkdownIt
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container
@@ -16,14 +17,21 @@ from ..core import get_api, last_session_path, new_session_path
 from ..session import Assistant, Session, User
 
 
+def parser_factory():
+    parser = MarkdownIt()
+    parser.options["html"] = False
+    return parser
+
+
 class Markdown(Markdown, can_focus=True):  # pylint: disable=function-redefined
     pass
 
 
 def markdown_for_step(step):
     return Markdown(
-        step.content.strip().replace("<", "&lt;"),
+        step.content.strip() or "…",
         classes="role_" + step.role,
+        parser_factory=parser_factory,
     )
 
 
@@ -73,7 +81,7 @@ class Tui(App):
         async def render_fun():
             while await update.get():
                 if tokens:
-                    await output.update("".join(tokens).replace("<", "&lt;"))
+                    output.update("".join(tokens).strip())
                 self.container.scroll_end()
                 await asyncio.sleep(0.1)
 
@@ -90,10 +98,10 @@ class Tui(App):
             await asyncio.gather(render_fun(), get_token_fun())
             self.input.value = ""
         finally:
-            all_output = self.session.session[-1].content.replace("<", "&lt;")
-            await output.update(all_output)
-            self.container.scroll_end()
+            all_output = self.session.session[-1].content
+            output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
+            self.container.scroll_end()
             self.input.disabled = False
 
     def scroll_end(self):
