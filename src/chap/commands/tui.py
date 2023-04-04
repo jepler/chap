@@ -81,7 +81,7 @@ class Tui(App):
         async def render_fun():
             while await update.get():
                 if tokens:
-                    await output.update("".join(tokens).strip())
+                    output.update("".join(tokens).strip())
                 self.container.scroll_end()
                 await asyncio.sleep(0.1)
 
@@ -99,7 +99,7 @@ class Tui(App):
             self.input.value = ""
         finally:
             all_output = self.session.session[-1].content
-            await output.update(all_output)
+            output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
             self.input.disabled = False
