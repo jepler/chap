@@ -14,34 +14,40 @@ from ..core import conversations_path, new_session_path
 from ..session import Message, Session
 
 
+def iter_sessions(name, content, session_in, node_id):
+    node = content["mapping"][node_id]
+    session = Session(session_in.session[:])
+
+    if "message" in node:
+        role = node["message"]["author"]["role"]
+        text_content = "".join(node["message"]["content"]["parts"])
+        session.session.append(Message(role=role, content=text_content))
+
+    if children := node.get("children"):
+        for c in children:
+            yield from iter_sessions(name, content, session, c)
+    else:
+        session.session[0] = Message(
+            "system",
+            f"# {content['title']}\nChatGPT session imported from {name}, branch {node_id}.\n\n",
+        )
+        yield node_id, session
+
+
 def do_import(output_directory, f):
     content = json.load(f)
-    session = Session.new_session(
-        f"# {content['title']}\nChatGPT session imported from {f.name}.\n\n**Warning**: only the final conversation branch is imported."
-    )
-    parts = [content["current_node"]]
-    # traverse back from the leaf node to the original conversation node
-    for p in parts:
-        node = content["mapping"][p]
-        parent = node.get("parent")
-        if parent is not None:
-            parts.append(parent)  # pylint: disable=modified-iterating-list
-    # reverse so we get the conversation in chronological order
-    for p in reversed(parts):
-        node = content["mapping"][p]
-        if "message" in node:
-            role = node["message"]["author"]["role"]
-            text_content = "".join(node["message"]["content"]["parts"])
-            session.session.append(Message(role=role, content=text_content))
+    session = Session.new_session()
 
-    # as this includes microseconds, we'll assume it's safe even for a batch import
-    session_filename = new_session_path(
-        output_directory
-        / (datetime.datetime.now().isoformat().replace(":", "_") + ".json")
-    )
-    with open(session_filename, "w", encoding="utf-8") as f_out:
-        f_out.write(session.to_json())  # pylint: disable=no-member
-    print(f"imported {f.name} to {session_filename}")
+    root = [k for k, v in content["mapping"].items() if not v.get("parent")][0]
+    for branch, session in iter_sessions(f.name, content, session, root):
+        # as this includes microseconds, we'll assume it's safe even for a batch import
+        session_filename = new_session_path(
+            output_directory
+            / (datetime.datetime.now().isoformat().replace(":", "_") + ".json")
+        )
+        with open(session_filename, "w", encoding="utf-8") as f_out:
+            f_out.write(session.to_json())  # pylint: disable=no-member
+        print(f"imported {f.name} branch {branch} to {session_filename}")
 
 
 @click.command
