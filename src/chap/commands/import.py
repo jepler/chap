@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import datetime
 import json
 import pathlib
 
@@ -36,15 +35,14 @@ def iter_sessions(name, content, session_in, node_id):
 
 
 def do_import(output_directory, f):
+    stem = pathlib.Path(f.name).stem
     content = json.load(f)
     session = Session.new_session()
 
     root = [k for k, v in content["mapping"].items() if not v.get("parent")][0]
     for branch, session in iter_sessions(f.name, content, session, root):
-        # as this includes microseconds, we'll assume it's safe even for a batch import
         session_filename = new_session_path(
-            output_directory
-            / (datetime.datetime.now().isoformat().replace(":", "_") + ".json")
+            output_directory / (f"{stem}_{branch}.json")
         )
         with open(session_filename, "w", encoding="utf-8") as f_out:
             f_out.write(session.to_json())  # pylint: disable=no-member
