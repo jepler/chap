@@ -27,9 +27,10 @@ def iter_sessions(name, content, session_in, node_id):
         for c in children:
             yield from iter_sessions(name, content, session, c)
     else:
+        title = content.get("title") or "Untitled"
         session.session[0] = Message(
             "system",
-            f"# {content['title']}\nChatGPT session imported from {name}, branch {node_id}.\n\n",
+            f"# {title}\nChatGPT session imported from {name}, branch {node_id}.\n\n",
         )
         yield node_id, session
 
