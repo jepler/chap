@@ -27,7 +27,7 @@ class MyCLI(click.MultiCommand):
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
 
-main = MyCLI(help="Commandline interface to ChatGPT")
+main = click.version_option()(MyCLI(help="Commandline interface to ChatGPT"))
 
 if __name__ == "__main__":
     main()
