@@ -24,7 +24,10 @@ def version_callback(ctx, param, value) -> None:  # pylint: disable=unused-argum
             encoding="utf-8",
         )
     else:
-        from .__version__ import __version__ as version
+        try:
+            from .__version__ import __version__ as version
+        except ImportError:
+            version = "unknown"
     prog_name = ctx.find_root().info_name
     click.utils.echo(
         f"{prog_name}, version {version}",
