@@ -22,15 +22,15 @@ repos:
   rev: v1.1.2
   hooks:
   - id: reuse
-- repo: https://github.com/pycqa/pylint
-  rev: v2.17.0
-  hooks:
-  - id: pylint
-    additional_dependencies: [click,dataclasses_json,httpx,lorem-text,'textual>=0.18.0',websockets]
-    args: ['--source-roots', 'src']
 - repo: https://github.com/pycqa/isort
   rev: 5.12.0
   hooks:
     - id: isort
       name: isort (python)
       args: ['--profile', 'black']
+- repo: https://github.com/pycqa/pylint
+  rev: v2.17.0
+  hooks:
+  - id: pylint
+    additional_dependencies: [click,dataclasses_json,httpx,lorem-text,'textual>=0.18.0',websockets]
+    args: ['--source-roots', 'src']
