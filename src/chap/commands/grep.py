@@ -34,6 +34,7 @@ def list_files_matching_rx(
 @click.option("--fixed-strings", "--literal", "-F", is_flag=True)
 @click.argument("pattern", nargs=1, required=True)
 def main(ignore_case, fixed_strings, pattern):
+    """Search sessions for pattern"""
     console = rich.get_console()
     if fixed_strings:
         pattern = re.escape(pattern)
