@@ -10,7 +10,7 @@ import click
 from markdown_it import MarkdownIt
 from textual.app import App
 from textual.binding import Binding
-from textual.containers import Container
+from textual.containers import Container, VerticalScroll
 from textual.widgets import Footer, Input, Markdown
 
 from ..core import get_api, last_session_path, new_session_path
@@ -58,7 +58,7 @@ class Tui(App):
     def compose(self):
         yield Footer()
         yield Input(placeholder="Prompt")
-        yield Container(Container(id="pad"), id="content")
+        yield VerticalScroll(Container(id="pad"), id="content")
 
     async def on_mount(self) -> None:
         await self.container.mount_all(
