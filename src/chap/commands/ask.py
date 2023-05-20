@@ -89,6 +89,7 @@ def verbose_ask(api, session, q, **kw):
 def main(
     continue_session, last, new_session, system_message, prompt, backend
 ):  # pylint: disable=too-many-arguments
+    """Ask a question (command-line argument is passed as prompt)"""
     if bool(continue_session) + bool(last) + bool(new_session) > 1:
         raise SystemExit(
             "--continue-session, --last and --new_session are mutually exclusive"

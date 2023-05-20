@@ -121,6 +121,7 @@ class Tui(App):
 @click.option("--system-message", "-S", type=str, default=None)
 @click.option("--backend", "-b", type=str, default="openai_chatgpt")
 def main(continue_session, last, new_session, system_message, backend):
+    """Start interactive terminal user interface session"""
     if bool(continue_session) + bool(last) + bool(new_session) > 1:
         raise SystemExit(
             "--continue-session, --last and --new_session are mutually exclusive"

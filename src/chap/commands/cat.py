@@ -12,6 +12,7 @@ from ..session import Session
 @click.option("--session", "-s", type=click.Path(exists=True), default=None)
 @click.option("--last", is_flag=True)
 def main(session, last):
+    """Print session in plaintext"""
     if bool(session) + bool(last) != 1:
         raise SystemExit("Specify either --session, or --last")
 
