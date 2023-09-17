@@ -29,7 +29,8 @@ def to_markdown(message):
 @click.command
 @click.option("--session", "-s", type=click.Path(exists=True), default=None)
 @click.option("--last", is_flag=True)
-def main(session, last):
+@click.option("--no-system", is_flag=True)
+def main(session, last, no_system):
     """Print session with formatting"""
     if bool(session) + bool(last) != 1:
         raise SystemExit("Specify either --session, or --last")
@@ -45,6 +46,8 @@ def main(session, last):
         if not first:
             console.print()
         first = False
+        if no_system and row.role == "system":
+            continue
         console.print(to_markdown(row))
 
 
