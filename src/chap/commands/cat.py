@@ -11,7 +11,8 @@ from ..session import Session
 @click.command
 @click.option("--session", "-s", type=click.Path(exists=True), default=None)
 @click.option("--last", is_flag=True)
-def main(session, last):
+@click.option("--no-system", is_flag=True)
+def main(session, last, no_system):
     """Print session in plaintext"""
     if bool(session) + bool(last) != 1:
         raise SystemExit("Specify either --session, or --last")
@@ -26,7 +27,20 @@ def main(session, last):
         if not first:
             print()
         first = False
-        print(row.content)
+        if row.role == "user":
+            decoration = "**"
+        elif row.role == "system":
+            if no_system:
+                continue
+            decoration = "_"
+        else:
+            decoration = ""
+
+        content = row.content.strip()
+        if "\n" in content:
+            print(content)
+        else:
+            print(f"{decoration}{content}{decoration}")
 
 
 if __name__ == "__main__":
