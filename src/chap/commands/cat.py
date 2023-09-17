@@ -4,23 +4,15 @@
 
 import click
 
-from ..core import last_session_path
-from ..session import Session
+from ..core import uses_existing_session
 
 
 @click.command
-@click.option("--session", "-s", type=click.Path(exists=True), default=None)
-@click.option("--last", is_flag=True)
+@uses_existing_session
 @click.option("--no-system", is_flag=True)
-def main(session, last, no_system):
+def main(obj, no_system):
     """Print session in plaintext"""
-    if bool(session) + bool(last) != 1:
-        raise SystemExit("Specify either --session, or --last")
-
-    if last:
-        session = last_session_path()
-    with open(session, "r", encoding="utf-8") as f:
-        session = Session.from_json(f.read())  # pylint: disable=no-member
+    session = obj.session
 
     first = True
     for row in session.session:
