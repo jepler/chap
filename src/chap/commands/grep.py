@@ -25,7 +25,7 @@ def list_files_matching_rx(
         with open(conversation, "r", encoding="utf-8") as f:
             session = Session.from_json(f.read())  # pylint: disable=no-member
             for message in session.session:
-                if rx.search(message.content):
+                if isinstance(message.content, str) and rx.search(message.content):
                     yield conversation, message
 
 

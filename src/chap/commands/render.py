@@ -21,7 +21,7 @@ def to_markdown(message):
     m = Markdown("", style=style)
     parser = MarkdownIt()
     parser.options["html"] = False
-    m.parsed = parser.parse(message.content.strip())
+    m.parsed = parser.parse(str(message.content).strip())
     return m
 
 

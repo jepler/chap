@@ -28,7 +28,7 @@ def main(obj, no_system):
         else:
             decoration = ""
 
-        content = row.content.strip()
+        content = str(row.content).strip()
         if "\n" in content:
             print(content)
         else:
