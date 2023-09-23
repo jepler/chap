@@ -4,6 +4,7 @@
 
 import asyncio
 import random
+from dataclasses import dataclass
 
 from lorem_text import lorem
 
@@ -18,6 +19,16 @@ def ipartition(s, sep=" "):
 
 
 class Lorem:
+    @dataclass
+    class Parameters:
+        delay_mu: float = 0.035
+        delay_sigma: float = 0.02
+        paragraph_lo: int = 1
+        paragraph_hi: int = 5
+
+    def __init__(self):
+        self.parameters = self.Parameters()
+
     system_message = (
         "(It doesn't matter what you ask, this backend will respond with lorem)"
     )
@@ -26,12 +37,16 @@ class Lorem:
         data = self.ask(session, query, max_query_size=max_query_size, timeout=timeout)
         for word, opt_sep in ipartition(data):
             yield word + opt_sep
-            await asyncio.sleep(random.uniform(0.02, 0.05))
+            await asyncio.sleep(
+                random.gauss(self.parameters.delay_mu, self.parameters.delay_sigma)
+            )
 
     def ask(
         self, session, query, *, max_query_size=5, timeout=60
     ):  # pylint: disable=unused-argument
-        new_content = lorem.paragraphs(3).replace("\n", "\n\n")
+        new_content = lorem.paragraphs(
+            random.randint(self.parameters.paragraph_lo, self.parameters.paragraph_hi)
+        ).replace("\n", "\n\n")
         session.session.extend([User(query), Assistant("".join(new_content))])
         return new_content
 

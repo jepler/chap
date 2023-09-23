@@ -8,7 +8,7 @@ import importlib
 import pathlib
 import pkgutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import click
 import platformdirs
@@ -77,12 +77,43 @@ def do_session_new(ctx, param, value):
     ctx.obj.session_filename = session_filename
 
 
+def colonstr(arg):
+    if ":" not in arg:
+        raise click.BadParameter("must be of the form 'name:value'")
+    return arg.split(":", 1)
+
+
 def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
     ctx.obj.system_message = value
 
 
 def set_backend(ctx, param, value):  # pylint: disable=unused-argument
     ctx.obj.api = get_api(value)
+
+
+def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
+    api = ctx.obj.api
+    if not hasattr(api, "parameters"):
+        raise click.BadParameter(
+            f"{api.__class__.__name__} does not support parameters"
+        )
+    all_fields = dict((f.name, f) for f in fields(api.parameters))
+
+    def set_one_backend_option(kv):
+        name, value = kv
+        field = all_fields.get(name)
+        if field is None:
+            raise click.BadParameter(f"Invalid parameter {name}")
+        try:
+            tv = field.type(value)
+        except ValueError as e:
+            raise click.BadParameter(
+                f"Invalid value for {name} with value {value}: {e}"
+            ) from e
+        setattr(api.parameters, name, tv)
+
+    for kv in opts:
+        set_one_backend_option(kv)
 
 
 def uses_session(f):
@@ -122,6 +153,15 @@ def uses_new_session(f):
         default="openai_chatgpt",
         callback=set_backend,
         expose_value=False,
+        is_eager=True,
+    )(f)
+    f = click.option(
+        "--backend-option",
+        "-B",
+        type=colonstr,
+        callback=set_backend_option,
+        expose_value=False,
+        multiple=True,
     )(f)
     f = uses_existing_session(f)
     f = click.option(
