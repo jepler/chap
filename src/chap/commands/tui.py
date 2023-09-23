@@ -103,6 +103,7 @@ class Tui(App):
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
             self.input.disabled = False
+            self.input.focus()
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
