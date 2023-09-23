@@ -7,8 +7,7 @@ import rich
 from markdown_it import MarkdownIt
 from rich.markdown import Markdown
 
-from ..core import last_session_path
-from ..session import Session
+from ..core import uses_existing_session
 
 
 def to_markdown(message):
@@ -22,22 +21,16 @@ def to_markdown(message):
     m = Markdown("", style=style)
     parser = MarkdownIt()
     parser.options["html"] = False
-    m.parsed = parser.parse(message.content.strip())
+    m.parsed = parser.parse(str(message.content).strip())
     return m
 
 
 @click.command
-@click.option("--session", "-s", type=click.Path(exists=True), default=None)
-@click.option("--last", is_flag=True)
-def main(session, last):
+@uses_existing_session
+@click.option("--no-system", is_flag=True)
+def main(obj, no_system):
     """Print session with formatting"""
-    if bool(session) + bool(last) != 1:
-        raise SystemExit("Specify either --session, or --last")
-
-    if last:
-        session = last_session_path()
-    with open(session, "r", encoding="utf-8") as f:
-        session = Session.from_json(f.read())  # pylint: disable=no-member
+    session = obj.session
 
     console = rich.get_console()
     first = True
@@ -45,6 +38,8 @@ def main(session, last):
         if not first:
             console.print()
         first = False
+        if no_system and row.role == "system":
+            continue
         console.print(to_markdown(row))
 
 

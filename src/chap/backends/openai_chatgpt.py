@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+from dataclasses import dataclass
 
 import httpx
 
@@ -11,19 +12,22 @@ from ..session import Assistant, Session, User
 
 
 class ChatGPT:
+    @dataclass
+    class Parameters:
+        model: str = "gpt-3.5-turbo"
+
     def __init__(self):
-        pass
+        self.parameters = self.Parameters()
 
     system_message: str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language."
 
     def ask(self, session, query, *, max_query_size=5, timeout=60):
         full_prompt = Session(session.session + [User(query)])
         del full_prompt.session[1:-max_query_size]
-
         response = httpx.post(
             "https://api.openai.com/v1/chat/completions",
             json={
-                "model": "gpt-3.5-turbo",
+                "model": self.parameters.model,
                 "messages": full_prompt.to_dict()[  # pylint: disable=no-member
                     "session"
                 ],
@@ -33,7 +37,6 @@ class ChatGPT:
             },
             timeout=timeout,
         )
-
         if response.status_code != 200:
             print("Failure", response.status_code, response.text)
             return None
@@ -60,7 +63,7 @@ class ChatGPT:
                     "https://api.openai.com/v1/chat/completions",
                     headers={"authorization": f"Bearer {self.get_key()}"},
                     json={
-                        "model": "gpt-3.5-turbo",
+                        "model": self.parameters.model,
                         "stream": True,
                         "messages": full_prompt.to_dict()[  # pylint: disable=no-member
                             "session"

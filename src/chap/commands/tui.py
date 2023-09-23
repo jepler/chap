@@ -13,7 +13,7 @@ from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Footer, Input, Markdown
 
-from ..core import get_api, last_session_path, new_session_path
+from ..core import get_api, uses_new_session
 from ..session import Assistant, Session, User
 
 
@@ -103,6 +103,7 @@ class Tui(App):
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
             self.input.disabled = False
+            self.input.focus()
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
@@ -115,29 +116,12 @@ class Tui(App):
 
 
 @click.command
-@click.option("--continue-session", "-s", type=click.Path(exists=True), default=None)
-@click.option("--last", is_flag=True)
-@click.option("--new-session", "-n", type=click.Path(exists=False), default=None)
-@click.option("--system-message", "-S", type=str, default=None)
-@click.option("--backend", "-b", type=str, default="openai_chatgpt")
-def main(continue_session, last, new_session, system_message, backend):
+@uses_new_session
+def main(obj):
     """Start interactive terminal user interface session"""
-    if bool(continue_session) + bool(last) + bool(new_session) > 1:
-        raise SystemExit(
-            "--continue-session, --last and --new_session are mutually exclusive"
-        )
-
-    api = get_api(backend)
-
-    if last:
-        continue_session = last_session_path()
-    if continue_session:
-        session_filename = continue_session
-        with open(session_filename, "r", encoding="utf-8") as f:
-            session = Session.from_json(f.read())  # pylint: disable=no-member
-    else:
-        session_filename = new_session_path(new_session)
-        session = Session.new_session(system_message or api.system_message)
+    api = obj.api
+    session = obj.session
+    session_filename = obj.session_filename
 
     tui = Tui(api, session)
     tui.run()

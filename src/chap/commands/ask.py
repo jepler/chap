@@ -8,8 +8,7 @@ import sys
 import click
 import rich
 
-from ..core import get_api, last_session_path, new_session_path
-from ..session import Session
+from ..core import uses_new_session
 
 if sys.stdout.isatty():
     bold = "\033[1m"
@@ -80,32 +79,13 @@ def verbose_ask(api, session, q, **kw):
 
 
 @click.command
-@click.option("--continue-session", "-s", type=click.Path(exists=True), default=None)
-@click.option("--last", is_flag=True)
-@click.option("--new-session", "-n", type=click.Path(exists=False), default=None)
-@click.option("--system-message", "-S", type=str, default=None)
-@click.option("--backend", "-b", type=str, default="openai_chatgpt")
+@uses_new_session
 @click.argument("prompt", nargs=-1, required=True)
-def main(
-    continue_session, last, new_session, system_message, prompt, backend
-):  # pylint: disable=too-many-arguments
+def main(obj, prompt):
     """Ask a question (command-line argument is passed as prompt)"""
-    if bool(continue_session) + bool(last) + bool(new_session) > 1:
-        raise SystemExit(
-            "--continue-session, --last and --new_session are mutually exclusive"
-        )
-
-    api = get_api(backend)
-
-    if last:
-        continue_session = last_session_path()
-    if continue_session:
-        session_filename = continue_session
-        with open(session_filename, "r", encoding="utf-8") as f:
-            session = Session.from_json(f.read())  # pylint: disable=no-member
-    else:
-        session_filename = new_session_path(new_session)
-        session = Session.new_session(system_message or api.system_message)
+    session = obj.session
+    session_filename = obj.session_filename
+    api = obj.api
 
     #    symlink_session_filename(session_filename)
 
