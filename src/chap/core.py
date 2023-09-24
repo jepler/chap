@@ -99,12 +99,13 @@ def format_backend_help(api, formatter):
     with formatter.section(f"Backend options for {api.__class__.__name__}"):
         rows = []
         for f in fields(api.parameters):
+            name = f.name.replace("_", "-")
             default = f.default if f.default_factory is MISSING else f.default_factory()
             doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
             if doc:
                 doc += " "
             doc += f"(Default: {default})"
-            rows.append((f"-B {f.name}:{f.type.__name__.upper()}", doc))
+            rows.append((f"-B {name}:{f.type.__name__.upper()}", doc))
         formatter.write_dl(rows)
 
 
@@ -130,7 +131,7 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         raise click.BadParameter(
             f"{api.__class__.__name__} does not support parameters"
         )
-    all_fields = dict((f.name, f) for f in fields(api.parameters))
+    all_fields = dict((f.name.replace("_", "-"), f) for f in fields(api.parameters))
 
     def set_one_backend_option(kv):
         name, value = kv
