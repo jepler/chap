@@ -175,4 +175,5 @@ class ChatGPT:
 
 
 def factory():
+    """Uses the OpenAI chat completion API"""
     return ChatGPT()

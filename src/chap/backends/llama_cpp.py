@@ -91,4 +91,5 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
 
 
 def factory():
+    """Uses the llama.cpp completion web API"""
     return LlamaCpp()

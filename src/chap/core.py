@@ -15,7 +15,7 @@ import click
 import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 
-from . import commands  # pylint: disable=no-name-in-module
+from . import backends, commands  # pylint: disable=no-name-in-module
 from .session import Session
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
@@ -110,6 +110,12 @@ def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
 
 
 def set_backend(ctx, param, value):  # pylint: disable=unused-argument
+    if value == "list":
+        formatter = ctx.make_formatter()
+        format_backend_list(formatter)
+        click.utils.echo(formatter.getvalue().rstrip("\n"))
+        ctx.exit()
+
     try:
         ctx.obj.api = get_api(value)
     except ModuleNotFoundError as e:
@@ -171,6 +177,28 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         set_one_backend_option(kv)
 
 
+def format_backend_list(formatter):
+    all_backends = []
+    for pi in pkgutil.walk_packages(backends.__path__):
+        name = pi.name
+        if not name.startswith("__"):
+            all_backends.append(name)
+    all_backends.sort()
+
+    rows = []
+    for name in all_backends:
+        try:
+            factory = importlib.import_module(f"{__package__}.backends.{name}").factory
+        except ImportError as e:
+            rows.append((name, str(e)))
+        else:
+            doc = getattr(factory, "__doc__", None)
+            rows.append((name, doc or ""))
+
+    with formatter.section("Available backends"):
+        formatter.write_dl(rows)
+
+
 def uses_session(f):
     f = click.option(
         "--continue-session",
@@ -218,6 +246,7 @@ def command_uses_new_session(f):
         expose_value=False,
         is_eager=True,
         envvar="CHAP_BACKEND",
+        help="The back-end to use ('--backend list' for a list)",
     )(f)
     f = click.option(
         "--backend-help",

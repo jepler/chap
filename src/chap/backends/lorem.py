@@ -56,4 +56,5 @@ class Lorem:
 
 
 def factory():
+    """That just prints 'lorem' text. Useful for testing."""
     return Lorem()

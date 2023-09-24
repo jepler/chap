@@ -134,4 +134,5 @@ AI: Hello! How can I assist you today?"""
 
 
 def factory():
+    """Uses the textgen completion API"""
     return Textgen()
