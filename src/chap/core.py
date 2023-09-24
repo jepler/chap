@@ -8,10 +8,11 @@ import importlib
 import pathlib
 import pkgutil
 import subprocess
-from dataclasses import dataclass, fields
+from dataclasses import MISSING, dataclass, fields
 
 import click
 import platformdirs
+from simple_parsing.docstring import get_attribute_docstring
 
 from . import commands  # pylint: disable=no-name-in-module
 from .session import Session
@@ -88,7 +89,33 @@ def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
 
 
 def set_backend(ctx, param, value):  # pylint: disable=unused-argument
-    ctx.obj.api = get_api(value)
+    try:
+        ctx.obj.api = get_api(value)
+    except ModuleNotFoundError as e:
+        raise click.BadParameter(str(e))
+
+
+def backend_help(ctx, param, value):  # pylint: disable=unused-argument
+    if ctx.resilient_parsing or not value:
+        return
+
+    if ctx.obj.api is None:
+        set_backend(ctx, "--backend", "chatgpt")
+
+    api = ctx.obj.api
+    if not hasattr(api, "parameters"):
+        click.utils.echo(f"{api.__class__.__name__} does not support parameters")
+    else:
+        click.utils.echo(f"{api.__class__.__name__} accepts the following parameters")
+        for f in fields(api.parameters):
+            default = f.default if f.default_factory is MISSING else f.default_factory()
+            doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
+            newline_doc = f"\n    {doc}" if doc else ""
+            click.utils.echo(
+                f"""\
+-B {f.name}:{f.type.__name__} (default: {default}){newline_doc}"""
+            )
+    ctx.exit()
 
 
 def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
@@ -154,6 +181,14 @@ def uses_new_session(f):
         callback=set_backend,
         expose_value=False,
         is_eager=True,
+    )(f)
+    f = click.option(
+        "--backend-help",
+        is_flag=True,
+        is_eager=True,
+        callback=backend_help,
+        expose_value=False,
+        help="Show information about backend options",
     )(f)
     f = click.option(
         "--backend-option",
