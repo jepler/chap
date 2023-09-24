@@ -8,10 +8,11 @@ import importlib
 import pathlib
 import pkgutil
 import subprocess
-from dataclasses import dataclass, fields
+from dataclasses import MISSING, dataclass, fields
 
 import click
 import platformdirs
+from simple_parsing.docstring import get_attribute_docstring
 
 from . import commands  # pylint: disable=no-name-in-module
 from .session import Session
@@ -88,7 +89,40 @@ def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
 
 
 def set_backend(ctx, param, value):  # pylint: disable=unused-argument
-    ctx.obj.api = get_api(value)
+    try:
+        ctx.obj.api = get_api(value)
+    except ModuleNotFoundError as e:
+        raise click.BadParameter(str(e))
+
+
+def format_backend_help(api, formatter):
+    with formatter.section(f"Backend options for {api.__class__.__name__}"):
+        rows = []
+        for f in fields(api.parameters):
+            name = f.name.replace("_", "-")
+            default = f.default if f.default_factory is MISSING else f.default_factory()
+            doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
+            if doc:
+                doc += " "
+            doc += f"(Default: {default})"
+            rows.append((f"-B {name}:{f.type.__name__.upper()}", doc))
+        formatter.write_dl(rows)
+
+
+def backend_help(ctx, param, value):  # pylint: disable=unused-argument
+    if ctx.resilient_parsing or not value:
+        return
+
+    api = ctx.obj.api or get_api()
+
+    if not hasattr(api, "parameters"):
+        click.utils.echo(f"{api.__class__.__name__} does not support parameters")
+    else:
+        formatter = ctx.make_formatter()
+        format_backend_help(api, formatter)
+        click.utils.echo(formatter.getvalue().rstrip("\n"))
+
+    ctx.exit()
 
 
 def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
@@ -97,7 +131,7 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         raise click.BadParameter(
             f"{api.__class__.__name__} does not support parameters"
         )
-    all_fields = dict((f.name, f) for f in fields(api.parameters))
+    all_fields = dict((f.name.replace("_", "-"), f) for f in fields(api.parameters))
 
     def set_one_backend_option(kv):
         name, value = kv
@@ -137,7 +171,15 @@ def uses_existing_session(f):
     return f
 
 
-def uses_new_session(f):
+class CommandWithBackendHelp(click.Command):
+    def format_options(self, ctx, formatter):
+        super().format_options(ctx, formatter)
+        api = ctx.obj.api or get_api()
+        if hasattr(api, "parameters"):
+            format_backend_help(api, formatter)
+
+
+def command_uses_new_session(f):
     f = click.option(
         "--system-message",
         "-S",
@@ -156,6 +198,14 @@ def uses_new_session(f):
         is_eager=True,
     )(f)
     f = click.option(
+        "--backend-help",
+        is_flag=True,
+        is_eager=True,
+        callback=backend_help,
+        expose_value=False,
+        help="Show information about backend options",
+    )(f)
+    f = click.option(
         "--backend-option",
         "-B",
         type=colonstr,
@@ -172,6 +222,7 @@ def uses_new_session(f):
         callback=do_session_new,
         expose_value=False,
     )(f)
+    f = click.command(cls=CommandWithBackendHelp)(f)
     return f
 
 

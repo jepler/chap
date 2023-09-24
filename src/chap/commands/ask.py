@@ -8,7 +8,7 @@ import sys
 import click
 import rich
 
-from ..core import uses_new_session
+from ..core import command_uses_new_session
 
 if sys.stdout.isatty():
     bold = "\033[1m"
@@ -78,8 +78,7 @@ def verbose_ask(api, session, q, **kw):
     return result
 
 
-@click.command
-@uses_new_session
+@command_uses_new_session
 @click.argument("prompt", nargs=-1, required=True)
 def main(obj, prompt):
     """Ask a question (command-line argument is passed as prompt)"""

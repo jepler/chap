@@ -22,9 +22,13 @@ class Lorem:
     @dataclass
     class Parameters:
         delay_mu: float = 0.035
+        """Average delay between tokens"""
         delay_sigma: float = 0.02
+        """Standard deviation of token delay"""
         paragraph_lo: int = 1
+        """Minimum response paragraph count"""
         paragraph_hi: int = 5
+        """Maximum response paragraph count (inclusive)"""
 
     def __init__(self):
         self.parameters = self.Parameters()
