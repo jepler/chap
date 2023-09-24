@@ -5,6 +5,7 @@
 
 import datetime
 import importlib
+import os
 import pathlib
 import pkgutil
 import subprocess
@@ -35,8 +36,28 @@ def new_session_path(opt_path=None):
     )
 
 
+def configure_api_from_environment(api_name, api):
+    if not hasattr(api, "parameters"):
+        return
+
+    for field in fields(api.parameters):
+        envvar = f"CHAP_{api_name.upper()}_{field.name.upper()}"
+        value = os.environ.get(envvar)
+        if value is None:
+            continue
+        try:
+            tv = field.type(value)
+        except ValueError as e:
+            raise click.BadParameter(
+                f"Invalid value for {field.name} with value {value}: {e}"
+            ) from e
+        setattr(api.parameters, field.name, tv)
+
+
 def get_api(name="openai_chatgpt"):
-    return importlib.import_module(f"{__package__}.backends.{name}").factory()
+    result = importlib.import_module(f"{__package__}.backends.{name}").factory()
+    configure_api_from_environment(name, result)
+    return result
 
 
 def ask(*args, **kw):
