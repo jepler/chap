@@ -4,11 +4,10 @@
 
 import click
 
-from ..core import uses_existing_session
+from ..core import command_uses_existing_session
 
 
-@click.command
-@uses_existing_session
+@command_uses_existing_session
 @click.option("--no-system", is_flag=True)
 def main(obj, no_system):
     """Print session in plaintext"""

@@ -7,7 +7,7 @@ import rich
 from markdown_it import MarkdownIt
 from rich.markdown import Markdown
 
-from ..core import uses_existing_session
+from ..core import command_uses_existing_session
 
 
 def to_markdown(message):
@@ -25,8 +25,7 @@ def to_markdown(message):
     return m
 
 
-@click.command
-@uses_existing_session
+@command_uses_existing_session
 @click.option("--no-system", is_flag=True)
 def main(obj, no_system):
     """Print session with formatting"""

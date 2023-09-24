@@ -25,11 +25,11 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
 ## commandline usage
 
- * chap ask "What advice would you give a 20th century human visiting the 21st century for the first time?"
+ * `chap ask "What advice would you give a 20th century human visiting the 21st century for the first time?"`
 
- * chap render --last
+ * `chap render --last`
 
- * chap import chatgpt-style-chatlog.json
+ * `chap import chatgpt-style-chatlog.json` (for files from pionxzh/chatgpt-exporter)
 
 ## interactive terminal usage
  * chap tui
@@ -49,8 +49,15 @@ You can set the "system message" with the `-S` flag.
 
 You can select the text generating backend with the `-b` flag:
  * openai\_chatgpt: the default, paid API, best quality results
- * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models, basic and low quality. Needs the server URL in *$configuration_directory/textgen\_url*.
+ * llama_cpp: Works with (llama.cpp's http server)[https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md] and can run locally with various models. Set the server URL with `-B url:...`.
+ * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models. Needs the server URL in *$configuration_directory/textgen\_url*.
  * lorem: local non-AI lorem generator for testing
+
+## Environment variables
+
+The backend can be set with `CHAP_BACKEND`.
+Backend settings can be set with `CHAP_<backend_name>_<parameter_name>`, with `backend_name` and `parameter_name` all in caps.
+For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama_cpp back-end.
 
 ## Importing from ChatGPT
 

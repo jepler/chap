@@ -5,6 +5,7 @@
 
 import datetime
 import importlib
+import os
 import pathlib
 import pkgutil
 import subprocess
@@ -14,7 +15,7 @@ import click
 import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 
-from . import commands  # pylint: disable=no-name-in-module
+from . import backends, commands  # pylint: disable=no-name-in-module
 from .session import Session
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
@@ -35,8 +36,28 @@ def new_session_path(opt_path=None):
     )
 
 
+def configure_api_from_environment(api_name, api):
+    if not hasattr(api, "parameters"):
+        return
+
+    for field in fields(api.parameters):
+        envvar = f"CHAP_{api_name.upper()}_{field.name.upper()}"
+        value = os.environ.get(envvar)
+        if value is None:
+            continue
+        try:
+            tv = field.type(value)
+        except ValueError as e:
+            raise click.BadParameter(
+                f"Invalid value for {field.name} with value {value}: {e}"
+            ) from e
+        setattr(api.parameters, field.name, tv)
+
+
 def get_api(name="openai_chatgpt"):
-    return importlib.import_module(f"{__package__}.backends.{name}").factory()
+    result = importlib.import_module(f"{__package__}.backends.{name}").factory()
+    configure_api_from_environment(name, result)
+    return result
 
 
 def ask(*args, **kw):
@@ -89,6 +110,12 @@ def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
 
 
 def set_backend(ctx, param, value):  # pylint: disable=unused-argument
+    if value == "list":
+        formatter = ctx.make_formatter()
+        format_backend_list(formatter)
+        click.utils.echo(formatter.getvalue().rstrip("\n"))
+        ctx.exit()
+
     try:
         ctx.obj.api = get_api(value)
     except ModuleNotFoundError as e:
@@ -107,22 +134,6 @@ def format_backend_help(api, formatter):
             doc += f"(Default: {default})"
             rows.append((f"-B {name}:{f.type.__name__.upper()}", doc))
         formatter.write_dl(rows)
-
-
-def backend_help(ctx, param, value):  # pylint: disable=unused-argument
-    if ctx.resilient_parsing or not value:
-        return
-
-    api = ctx.obj.api or get_api()
-
-    if not hasattr(api, "parameters"):
-        click.utils.echo(f"{api.__class__.__name__} does not support parameters")
-    else:
-        formatter = ctx.make_formatter()
-        format_backend_help(api, formatter)
-        click.utils.echo(formatter.getvalue().rstrip("\n"))
-
-    ctx.exit()
 
 
 def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
@@ -150,6 +161,28 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         set_one_backend_option(kv)
 
 
+def format_backend_list(formatter):
+    all_backends = []
+    for pi in pkgutil.walk_packages(backends.__path__):
+        name = pi.name
+        if not name.startswith("__"):
+            all_backends.append(name)
+    all_backends.sort()
+
+    rows = []
+    for name in all_backends:
+        try:
+            factory = importlib.import_module(f"{__package__}.backends.{name}").factory
+        except ImportError as e:
+            rows.append((name, str(e)))
+        else:
+            doc = getattr(factory, "__doc__", None)
+            rows.append((name, doc or ""))
+
+    with formatter.section("Available backends"):
+        formatter.write_dl(rows)
+
+
 def uses_session(f):
     f = click.option(
         "--continue-session",
@@ -166,54 +199,14 @@ def uses_session(f):
     return f
 
 
-def uses_existing_session(f):
+def command_uses_existing_session(f):
     f = uses_session(f)
+    f = click.command()(f)
     return f
 
 
-class CommandWithBackendHelp(click.Command):
-    def format_options(self, ctx, formatter):
-        super().format_options(ctx, formatter)
-        api = ctx.obj.api or get_api()
-        if hasattr(api, "parameters"):
-            format_backend_help(api, formatter)
-
-
 def command_uses_new_session(f):
-    f = click.option(
-        "--system-message",
-        "-S",
-        type=str,
-        default=None,
-        callback=set_system_message,
-        expose_value=False,
-    )(f)
-    f = click.option(
-        "--backend",
-        "-b",
-        type=str,
-        default="openai_chatgpt",
-        callback=set_backend,
-        expose_value=False,
-        is_eager=True,
-    )(f)
-    f = click.option(
-        "--backend-help",
-        is_flag=True,
-        is_eager=True,
-        callback=backend_help,
-        expose_value=False,
-        help="Show information about backend options",
-    )(f)
-    f = click.option(
-        "--backend-option",
-        "-B",
-        type=colonstr,
-        callback=set_backend_option,
-        expose_value=False,
-        multiple=True,
-    )(f)
-    f = uses_existing_session(f)
+    f = uses_session(f)
     f = click.option(
         "--new-session",
         "-n",
@@ -222,7 +215,7 @@ def command_uses_new_session(f):
         callback=do_session_new,
         expose_value=False,
     )(f)
-    f = click.command(cls=CommandWithBackendHelp)(f)
+    f = click.command()(f)
     return f
 
 
@@ -258,8 +251,7 @@ class Obj:
 
 class MyCLI(click.MultiCommand):
     def make_context(self, info_name, args, parent=None, **extra):
-        result = super().make_context(info_name, args, parent, **extra)
-        result.obj = Obj()
+        result = super().make_context(info_name, args, parent, obj=Obj(), **extra)
         return result
 
     def list_commands(self, ctx):
@@ -277,6 +269,12 @@ class MyCLI(click.MultiCommand):
         except ModuleNotFoundError as exc:
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
+    def format_options(self, ctx, formatter):
+        super().format_options(ctx, formatter)
+        api = ctx.obj.api or get_api()
+        if hasattr(api, "parameters"):
+            format_backend_help(api, formatter)
+
 
 main = MyCLI(
     help="Commandline interface to ChatGPT",
@@ -287,6 +285,30 @@ main = MyCLI(
             is_eager=True,
             help="Show the version and exit",
             callback=version_callback,
-        )
+        ),
+        click.Option(
+            ("--system-message", "-S"),
+            type=str,
+            default=None,
+            callback=set_system_message,
+            expose_value=False,
+        ),
+        click.Option(
+            ("--backend", "-b"),
+            type=str,
+            default="openai_chatgpt",
+            callback=set_backend,
+            expose_value=False,
+            is_eager=True,
+            envvar="CHAP_BACKEND",
+            help="The back-end to use ('--backend list' for a list)",
+        ),
+        click.Option(
+            ("--backend-option", "-B"),
+            type=colonstr,
+            callback=set_backend_option,
+            expose_value=False,
+            multiple=True,
+        ),
     ],
 )
