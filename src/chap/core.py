@@ -199,48 +199,14 @@ def uses_session(f):
     return f
 
 
-def uses_existing_session(f):
+def command_uses_existing_session(f):
     f = uses_session(f)
+    f = click.command()(f)
     return f
 
 
-class CommandWithBackendHelp(click.Command):
-    def format_options(self, ctx, formatter):
-        super().format_options(ctx, formatter)
-        api = ctx.obj.api or get_api()
-        if hasattr(api, "parameters"):
-            format_backend_help(api, formatter)
-
-
 def command_uses_new_session(f):
-    f = click.option(
-        "--system-message",
-        "-S",
-        type=str,
-        default=None,
-        callback=set_system_message,
-        expose_value=False,
-    )(f)
-    f = click.option(
-        "--backend",
-        "-b",
-        type=str,
-        default="openai_chatgpt",
-        callback=set_backend,
-        expose_value=False,
-        is_eager=True,
-        envvar="CHAP_BACKEND",
-        help="The back-end to use ('--backend list' for a list)",
-    )(f)
-    f = click.option(
-        "--backend-option",
-        "-B",
-        type=colonstr,
-        callback=set_backend_option,
-        expose_value=False,
-        multiple=True,
-    )(f)
-    f = uses_existing_session(f)
+    f = uses_session(f)
     f = click.option(
         "--new-session",
         "-n",
@@ -249,7 +215,7 @@ def command_uses_new_session(f):
         callback=do_session_new,
         expose_value=False,
     )(f)
-    f = click.command(cls=CommandWithBackendHelp)(f)
+    f = click.command()(f)
     return f
 
 
@@ -285,8 +251,7 @@ class Obj:
 
 class MyCLI(click.MultiCommand):
     def make_context(self, info_name, args, parent=None, **extra):
-        result = super().make_context(info_name, args, parent, **extra)
-        result.obj = Obj()
+        result = super().make_context(info_name, args, parent, obj=Obj(), **extra)
         return result
 
     def list_commands(self, ctx):
@@ -304,6 +269,12 @@ class MyCLI(click.MultiCommand):
         except ModuleNotFoundError as exc:
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
+    def format_options(self, ctx, formatter):
+        super().format_options(ctx, formatter)
+        api = ctx.obj.api or get_api()
+        if hasattr(api, "parameters"):
+            format_backend_help(api, formatter)
+
 
 main = MyCLI(
     help="Commandline interface to ChatGPT",
@@ -314,6 +285,30 @@ main = MyCLI(
             is_eager=True,
             help="Show the version and exit",
             callback=version_callback,
-        )
+        ),
+        click.Option(
+            ("--system-message", "-S"),
+            type=str,
+            default=None,
+            callback=set_system_message,
+            expose_value=False,
+        ),
+        click.Option(
+            ("--backend", "-b"),
+            type=str,
+            default="openai_chatgpt",
+            callback=set_backend,
+            expose_value=False,
+            is_eager=True,
+            envvar="CHAP_BACKEND",
+            help="The back-end to use ('--backend list' for a list)",
+        ),
+        click.Option(
+            ("--backend-option", "-B"),
+            type=colonstr,
+            callback=set_backend_option,
+            expose_value=False,
+            multiple=True,
+        ),
     ],
 )
