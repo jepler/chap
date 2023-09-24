@@ -217,6 +217,7 @@ def command_uses_new_session(f):
         callback=set_backend,
         expose_value=False,
         is_eager=True,
+        envvar="CHAP_BACKEND",
     )(f)
     f = click.option(
         "--backend-help",
