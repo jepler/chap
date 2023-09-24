@@ -95,26 +95,32 @@ def set_backend(ctx, param, value):  # pylint: disable=unused-argument
         raise click.BadParameter(str(e))
 
 
+def format_backend_help(api, formatter):
+    with formatter.section(f"Backend options for {api.__class__.__name__}"):
+        rows = []
+        for f in fields(api.parameters):
+            default = f.default if f.default_factory is MISSING else f.default_factory()
+            doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
+            if doc:
+                doc += " "
+            doc += f"(Default: {default})"
+            rows.append((f"-B {f.name}:{f.type.__name__.upper()}", doc))
+        formatter.write_dl(rows)
+
+
 def backend_help(ctx, param, value):  # pylint: disable=unused-argument
     if ctx.resilient_parsing or not value:
         return
 
-    if ctx.obj.api is None:
-        set_backend(ctx, "--backend", "chatgpt")
+    api = ctx.obj.api or get_api()
 
-    api = ctx.obj.api
     if not hasattr(api, "parameters"):
         click.utils.echo(f"{api.__class__.__name__} does not support parameters")
     else:
-        click.utils.echo(f"{api.__class__.__name__} accepts the following parameters")
-        for f in fields(api.parameters):
-            default = f.default if f.default_factory is MISSING else f.default_factory()
-            doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
-            newline_doc = f"\n    {doc}" if doc else ""
-            click.utils.echo(
-                f"""\
--B {f.name}:{f.type.__name__} (default: {default}){newline_doc}"""
-            )
+        formatter = ctx.make_formatter()
+        format_backend_help(api, formatter)
+        click.utils.echo(formatter.getvalue().rstrip("\n"))
+
     ctx.exit()
 
 
@@ -164,7 +170,15 @@ def uses_existing_session(f):
     return f
 
 
-def uses_new_session(f):
+class CommandWithBackendHelp(click.Command):
+    def format_options(self, ctx, formatter):
+        super().format_options(ctx, formatter)
+        api = ctx.obj.api or get_api()
+        if hasattr(api, "parameters"):
+            format_backend_help(api, formatter)
+
+
+def command_uses_new_session(f):
     f = click.option(
         "--system-message",
         "-S",
@@ -207,6 +221,7 @@ def uses_new_session(f):
         callback=do_session_new,
         expose_value=False,
     )(f)
+    f = click.command(cls=CommandWithBackendHelp)(f)
     return f
 
 

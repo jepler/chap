@@ -6,14 +6,13 @@ import asyncio
 import subprocess
 import sys
 
-import click
 from markdown_it import MarkdownIt
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Footer, Input, Markdown
 
-from ..core import get_api, uses_new_session
+from ..core import command_uses_new_session, get_api
 from ..session import Assistant, Session, User
 
 
@@ -115,8 +114,7 @@ class Tui(App):
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
 
-@click.command
-@uses_new_session
+@command_uses_new_session
 def main(obj):
     """Start interactive terminal user interface session"""
     api = obj.api
