@@ -15,7 +15,7 @@ class LlamaCpp:
     @dataclass
     class Parameters:
         url: str = "http://localhost:8080/completion"
-        """The URL of a llama.cpp server's completion endpoint. See https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md for more information."""
+        """The URL of a llama.cpp server's completion endpoint."""
 
     def __init__(self):
         self.parameters = self.Parameters()
