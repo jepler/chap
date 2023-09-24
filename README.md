@@ -25,11 +25,11 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
 ## commandline usage
 
- * chap ask "What advice would you give a 20th century human visiting the 21st century for the first time?"
+ * `chap ask "What advice would you give a 20th century human visiting the 21st century for the first time?"`
 
- * chap render --last
+ * `chap render --last`
 
- * chap import chatgpt-style-chatlog.json
+ * `chap import chatgpt-style-chatlog.json` (for files from pionxzh/chatgpt-exporter)
 
 ## interactive terminal usage
  * chap tui
