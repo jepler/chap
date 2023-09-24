@@ -27,6 +27,7 @@ dependencies = [
     "lorem-text",
     "platformdirs",
     "textual>=0.18.0",
+    "tiktoken",
     "websockets",
 ]
 classifiers = [
