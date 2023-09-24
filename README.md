@@ -50,7 +50,7 @@ You can set the "system message" with the `-S` flag.
 You can select the text generating backend with the `-b` flag:
  * openai\_chatgpt: the default, paid API, best quality results
  * llama_cpp: Works with (llama.cpp's http server)[https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md] and can run locally with various models. Set the server URL with `-B url:...`.
- * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models, basic and low quality. Needs the server URL in *$configuration_directory/textgen\_url*.
+ * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models. Needs the server URL in *$configuration_directory/textgen\_url*.
  * lorem: local non-AI lorem generator for testing
 
 ## Environment variables
