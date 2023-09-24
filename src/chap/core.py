@@ -136,22 +136,6 @@ def format_backend_help(api, formatter):
         formatter.write_dl(rows)
 
 
-def backend_help(ctx, param, value):  # pylint: disable=unused-argument
-    if ctx.resilient_parsing or not value:
-        return
-
-    api = ctx.obj.api or get_api()
-
-    if not hasattr(api, "parameters"):
-        click.utils.echo(f"{api.__class__.__name__} does not support parameters")
-    else:
-        formatter = ctx.make_formatter()
-        format_backend_help(api, formatter)
-        click.utils.echo(formatter.getvalue().rstrip("\n"))
-
-    ctx.exit()
-
-
 def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
     api = ctx.obj.api
     if not hasattr(api, "parameters"):
@@ -247,14 +231,6 @@ def command_uses_new_session(f):
         is_eager=True,
         envvar="CHAP_BACKEND",
         help="The back-end to use ('--backend list' for a list)",
-    )(f)
-    f = click.option(
-        "--backend-help",
-        is_flag=True,
-        is_eager=True,
-        callback=backend_help,
-        expose_value=False,
-        help="Show information about backend options",
     )(f)
     f = click.option(
         "--backend-option",
