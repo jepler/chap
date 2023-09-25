@@ -106,6 +106,9 @@ def colonstr(arg):
 
 
 def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
+    if value and value.startswith("@"):
+        with open(value[1:], "r", encoding="utf-8") as f:
+            value = f.read().rstrip()
     ctx.obj.system_message = value
 
 
