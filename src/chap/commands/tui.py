@@ -22,7 +22,9 @@ def parser_factory():
     return parser
 
 
-class Markdown(Markdown, can_focus=True):  # pylint: disable=function-redefined
+class Markdown(
+    Markdown, can_focus=True, can_focus_children=False
+):  # pylint: disable=function-redefined
     pass
 
 
