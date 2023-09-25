@@ -10,11 +10,8 @@ import rich
 
 from ..core import command_uses_new_session
 
-if sys.stdout.isatty():
-    bold = "\033[1m"
-    nobold = "\033[m"
-else:
-    bold = nobold = ""
+bold = "\033[1m"
+nobold = "\033[m"
 
 
 def ipartition(s, sep):
@@ -22,6 +19,14 @@ def ipartition(s, sep):
     while rest:
         first, opt_sep, rest = rest.partition(sep)
         yield (first, opt_sep)
+
+
+class DumbPrinter:
+    def raw(self, s):
+        pass
+
+    def add(self, s):
+        print(s, end="")
 
 
 class WrappingPrinter:
@@ -58,29 +63,34 @@ class WrappingPrinter:
                 self._sp = ""
 
 
-def verbose_ask(api, session, q, **kw):
-    printer = WrappingPrinter()
+def verbose_ask(api, session, q, print_prompt, **kw):
+    if sys.stdout.isatty():
+        printer = WrappingPrinter()
+    else:
+        printer = DumbPrinter()
     tokens = []
 
     async def work():
         async for token in api.aask(session, q, **kw):
             printer.add(token)
 
-    printer.raw(bold)
-    printer.add(q)
-    printer.raw(nobold)
-    printer.add("\n")
-    printer.add("\n")
+    if print_prompt:
+        printer.raw(bold)
+        printer.add(q)
+        printer.raw(nobold)
+        printer.add("\n")
+        printer.add("\n")
+
     asyncio.run(work())
-    printer.add("\n")
     printer.add("\n")
     result = "".join(tokens)
     return result
 
 
 @command_uses_new_session
+@click.option("--print-prompt/--no-print-prompt", default=True)
 @click.argument("prompt", nargs=-1, required=True)
-def main(obj, prompt):
+def main(obj, prompt, print_prompt):
     """Ask a question (command-line argument is passed as prompt)"""
     session = obj.session
     session_filename = obj.session_filename
@@ -88,7 +98,7 @@ def main(obj, prompt):
 
     #    symlink_session_filename(session_filename)
 
-    response = verbose_ask(api, session, " ".join(prompt))
+    response = verbose_ask(api, session, " ".join(prompt), print_prompt=print_prompt)
 
     print(f"Saving session to {session_filename}", file=sys.stderr)
     if response is not None:

@@ -12,7 +12,7 @@ from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Footer, Input, Markdown
 
-from ..core import command_uses_new_session, get_api
+from ..core import command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Session, User
 
 
@@ -22,8 +22,14 @@ def parser_factory():
     return parser
 
 
-class Markdown(Markdown, can_focus=True):  # pylint: disable=function-redefined
-    pass
+class Markdown(
+    Markdown, can_focus=True, can_focus_children=False
+):  # pylint: disable=function-redefined
+    BINDINGS = [
+        Binding("ctrl+y", "yank", "Yank text", show=True),
+        Binding("ctrl+r", "resubmit", "resubmit", show=True),
+        Binding("ctrl+x", "delete", "delete to end", show=True),
+    ]
 
 
 def markdown_for_step(step):
@@ -37,8 +43,7 @@ def markdown_for_step(step):
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+y", "yank", "Yank text", show=True),
-        Binding("ctrl+q", "app.quit", "Quit", show=True),
+        Binding("ctrl+q", "app.quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(self, api=None, session=None):
@@ -112,6 +117,37 @@ class Tui(App):
         if isinstance(widget, Markdown):
             content = widget._markdown  # pylint: disable=protected-access
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
+
+    async def action_resubmit(self):
+        await self.delete_or_resubmit(True)
+
+    async def action_delete(self):
+        await self.delete_or_resubmit(False)
+
+    async def delete_or_resubmit(self, resubmit):
+        widget = self.focused
+        if not isinstance(widget, Markdown):
+            return
+        children = self.container.children
+        idx = children.index(widget)
+        while idx > 1 and not "role_user" in children[idx].classes:
+            idx -= 1
+        widget = children[idx]
+
+        # Save a copy of the discussion before this deletion
+        with open(new_session_path(), "w", encoding="utf-8") as f:
+            f.write(self.session.to_json())
+
+        query = self.session.session[idx].content
+        self.input.value = query
+
+        del self.session.session[idx:]
+        for child in self.container.children[idx:-1]:
+            await child.remove()
+
+        self.input.focus()
+        if resubmit:
+            await self.input.action_submit()
 
 
 @command_uses_new_session
