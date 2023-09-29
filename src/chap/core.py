@@ -134,7 +134,7 @@ def format_backend_help(api, formatter):
             doc = get_attribute_docstring(type(api.parameters), f.name).docstring_below
             if doc:
                 doc += " "
-            doc += f"(Default: {default})"
+            doc += f"(Default: {default!r})"
             rows.append((f"-B {name}:{f.type.__name__.upper()}", doc))
         formatter.write_dl(rows)
 
