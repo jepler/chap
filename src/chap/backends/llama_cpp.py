@@ -54,6 +54,7 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
                 session.session + [User(query)], max_query_size
             ),
             "stream": True,
+            "stop": ["</s>", "[INST]"],
         }
         new_content = []
         try:
