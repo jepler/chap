@@ -4,6 +4,15 @@
  * SPDX-License-Identifier: MIT
  */
 
+.role_user.history_exclude, .role_assistant.history_exclude {
+    color: $text-disabled;
+    border-left: dashed $primary;
+}
+.role_assistant.history_exclude:focus-within {
+    color: $text-disabled;
+    border-left: dashed $secondary;
+}
+
 .role_system {
     text-style: italic;
     color: $text-muted;

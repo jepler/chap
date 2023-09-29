@@ -29,6 +29,7 @@ class Markdown(
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
         Binding("ctrl+x", "delete", "delete to end", show=True),
+        Binding("ctrl+q", "toggle_history", "history toggle", show=True),
     ]
 
 
@@ -43,7 +44,7 @@ def markdown_for_step(step):
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+q", "app.quit", "Quit", show=True, priority=True),
+        Binding("ctrl+c", "app.quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(self, api=None, session=None):
@@ -82,6 +83,12 @@ class Tui(App):
         tokens = []
         update = asyncio.Queue(1)
 
+        # Construct a fake session with only select items
+        session = Session()
+        for si, wi in zip(self.session.session, self.container.children):
+            if not wi.has_class("history_exclude"):
+                session.session.append(si)
+
         async def render_fun():
             while await update.get():
                 if tokens:
@@ -90,7 +97,7 @@ class Tui(App):
                 await asyncio.sleep(0.1)
 
         async def get_token_fun():
-            async for token in self.api.aask(self.session, event.value):
+            async for token in self.api.aask(session, event.value):
                 tokens.append(token)
                 try:
                     update.put_nowait(True)
@@ -102,6 +109,7 @@ class Tui(App):
             await asyncio.gather(render_fun(), get_token_fun())
             self.input.value = ""
         finally:
+            self.session.session.extend(session.session[-2:])
             all_output = self.session.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
@@ -118,6 +126,19 @@ class Tui(App):
             content = widget._markdown  # pylint: disable=protected-access
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
+    def action_toggle_history(self):
+        widget = self.focused
+        if not isinstance(widget, Markdown):
+            return
+        children = self.container.children
+        idx = children.index(widget)
+        while idx > 1 and not "role_user" in children[idx].classes:
+            idx -= 1
+        widget = children[idx]
+
+        children[idx].toggle_class("history_exclude")
+        children[idx + 1].toggle_class("history_exclude")
+
     async def action_resubmit(self):
         await self.delete_or_resubmit(True)
 
@@ -130,7 +151,7 @@ class Tui(App):
             return
         children = self.container.children
         idx = children.index(widget)
-        while idx > 1 and not "role_user" in children[idx].classes:
+        while idx > 1 and not children[idx].has_class("role_user"):
             idx -= 1
         widget = children[idx]
 
