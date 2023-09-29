@@ -47,14 +47,14 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         return full_query
 
     async def aask(
-        self, session, query, *, max_query_size=5, timeout=60
+        self, session, query, *, max_query_size=5, timeout=180
     ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
         params = {
             "prompt": self.make_full_query(
                 session.session + [User(query)], max_query_size
             ),
             "stream": True,
-            "stop": ["</s>", "[INST]"],
+            "stop": ["</s>", "<s>", "[INST]"],
         }
         new_content = []
         try:
