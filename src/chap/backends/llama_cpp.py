@@ -17,6 +17,11 @@ class LlamaCpp:
         url: str = "http://localhost:8080/completion"
         """The URL of a llama.cpp server's completion endpoint."""
 
+        start_prompt: str = """<s>[INST] <<SYS>>\n"""
+        after_system: str = "\n<</SYS>>\n\n"
+        after_user: str = """ [/INST] """
+        after_assistant: str = """ </s><s>[INST] """
+
     def __init__(self):
         self.parameters = self.Parameters()
 
@@ -26,19 +31,19 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
 
     def make_full_query(self, messages, max_query_size):
         del messages[1:-max_query_size]
-        rows = []
+        result = [self.parameters.start_prompt]
         for m in messages:
             content = (m.content or "").strip()
             if not content:
                 continue
+            result.append(content)
             if m.role == "system":
-                rows.append(f"ASSISTANT'S RULE: {content}\n")
+                result.append(self.parameters.after_system)
             elif m.role == "assistant":
-                rows.append(f"ASSISTANT: {content}\n")
+                result.append(self.parameters.after_assistant)
             elif m.role == "user":
-                rows.append(f"USER: {content}")
-        rows.append("ASSISTANT: ")
-        full_query = ("\n".join(rows)).rstrip()
+                result.append(self.parameters.after_user)
+        full_query = "".join(result)
         return full_query
 
     async def aask(
