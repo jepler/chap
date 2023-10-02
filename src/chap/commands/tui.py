@@ -118,6 +118,9 @@ class Tui(App):
         tokens = []
         update = asyncio.Queue(1)
 
+        for markdown in self.container.children:
+            markdown.disabled = True
+
         # Construct a fake session with only select items
         session = Session()
         for si, wi in zip(self.session.session, self.container.children):
@@ -159,6 +162,9 @@ class Tui(App):
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
+
+            for markdown in self.container.children:
+                markdown.disabled = False
 
             self.input.styles.display = "block"
             self.wait.styles.display = "none"
