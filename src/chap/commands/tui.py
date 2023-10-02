@@ -187,12 +187,15 @@ class Tui(App):
             return
         children = self.container.children
         idx = children.index(widget)
+        if idx == 0:
+            return
+
         while idx > 1 and not "role_user" in children[idx].classes:
             idx -= 1
         widget = children[idx]
 
-        children[idx].toggle_class("history_exclude")
-        children[idx + 1].toggle_class("history_exclude")
+        for m in children[idx : idx + 2]:
+            m.toggle_class("history_exclude")
 
     async def action_stop_generating(self):
         self.workers.cancel_all()
