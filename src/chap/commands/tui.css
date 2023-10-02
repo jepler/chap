@@ -39,9 +39,13 @@ Markdown {
 Footer {
     dock: top;
 }
-Input {
+
+#inputbox {
     dock: bottom;
+    height: 3;
 }
+
+#inputbox Button { dock: right; display: none; }
 
 Markdown {
     margin: 0 1 0 0;

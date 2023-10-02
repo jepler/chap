@@ -7,10 +7,11 @@ import subprocess
 import sys
 
 from markdown_it import MarkdownIt
+from textual import work
 from textual.app import App
 from textual.binding import Binding
-from textual.containers import Container, VerticalScroll
-from textual.widgets import Footer, Input, Markdown
+from textual.containers import Container, Horizontal, VerticalScroll
+from textual.widgets import Button, Footer, Input, Markdown
 
 from ..core import command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Session, User
@@ -41,10 +42,16 @@ def markdown_for_step(step):
     )
 
 
+class CancelButton(Button):
+    BINDINGS = [
+        Binding("escape", "stop_generating", "Stop Generating", show=True),
+    ]
+
+
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+c", "app.quit", "Quit", show=True, priority=True),
+        Binding("ctrl+q", "quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(self, api=None, session=None):
@@ -57,28 +64,43 @@ class Tui(App):
         return self.query_one(Input)
 
     @property
+    def cancel_button(self):
+        return self.query_one(CancelButton)
+
+    @property
     def container(self):
         return self.query_one("#content")
 
     def compose(self):
         yield Footer()
-        yield Input(placeholder="Prompt")
-        yield VerticalScroll(Container(id="pad"), id="content")
+        yield VerticalScroll(
+            *[markdown_for_step(step) for step in self.session.session],
+            Container(id="pad"),
+            id="content",
+        )
+        with Horizontal(id="inputbox"):
+            yield CancelButton(label="❌", id="cancel")
+            yield Input(placeholder="Prompt")
 
     async def on_mount(self) -> None:
-        await self.container.mount_all(
-            [markdown_for_step(step) for step in self.session.session], before="#pad"
-        )
-        # self.scrollview.scroll_y = self.scrollview.get_content_height()
-        self.scroll_end()
+        self.container.scroll_end(animate=False)
         self.input.focus()
+        self.cancel_button.disabled = True
+        self.cancel_button.styles.display = "none"
 
     async def on_input_submitted(self, event) -> None:
+        self.get_completion(event.value)
+
+    @work(exclusive=True)
+    async def get_completion(self, query):
         self.scroll_end()
         self.input.disabled = True
+        self.cancel_button.disabled = False
+        self.cancel_button.styles.display = "block"
+        self.cancel_button.focus()
         output = markdown_for_step(Assistant("*query sent*"))
         await self.container.mount_all(
-            [markdown_for_step(User(event.value)), output], before="#pad"
+            [markdown_for_step(User(query)), output], before="#pad"
         )
         tokens = []
         update = asyncio.Queue(1)
@@ -89,6 +111,14 @@ class Tui(App):
             if not wi.has_class("history_exclude"):
                 session.session.append(si)
 
+        message = Assistant("")
+        self.session.session.extend(
+            [
+                User(query),
+                message,
+            ]
+        )
+
         async def render_fun():
             while await update.get():
                 if tokens:
@@ -97,11 +127,14 @@ class Tui(App):
                 await asyncio.sleep(0.1)
 
         async def get_token_fun():
-            async for token in self.api.aask(session, event.value):
+            async for token in self.api.aask(session, query):
                 tokens.append(token)
+                message.content += token
                 try:
                     update.put_nowait(True)
                 except asyncio.QueueFull:
+                    # QueueFull exception is expected. If something's in the
+                    # queue then render_fun will run soon.
                     pass
             await update.put(False)
 
@@ -109,13 +142,14 @@ class Tui(App):
             await asyncio.gather(render_fun(), get_token_fun())
             self.input.value = ""
         finally:
-            self.session.session.extend(session.session[-2:])
             all_output = self.session.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
             self.input.disabled = False
             self.input.focus()
+            self.cancel_button.disabled = True
+            self.cancel_button.styles.display = "none"
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
@@ -138,6 +172,16 @@ class Tui(App):
 
         children[idx].toggle_class("history_exclude")
         children[idx + 1].toggle_class("history_exclude")
+
+    async def action_stop_generating(self):
+        self.workers.cancel_all()
+
+    async def on_button_pressed(self, event):  # pylint: disable=unused-argument
+        self.workers.cancel_all()
+
+    async def action_quit(self):
+        self.workers.cancel_all()
+        self.exit()
 
     async def action_resubmit(self):
         await self.delete_or_resubmit(True)
