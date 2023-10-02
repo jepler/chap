@@ -11,7 +11,7 @@ from textual import work
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Button, Footer, Input, Markdown
+from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
 
 from ..core import command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Session, User
@@ -29,7 +29,7 @@ class Markdown(
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
-        Binding("ctrl+x", "delete", "delete to end", show=True),
+        Binding("ctrl+x", "redraft", "redraft", show=True),
         Binding("ctrl+q", "toggle_history", "history toggle", show=True),
     ]
 
@@ -51,13 +51,21 @@ class CancelButton(Button):
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+q", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(self, api=None, session=None):
         super().__init__()
         self.api = api or get_api("lorem")
         self.session = session or Session.new_session(self.api.system_message)
+
+    @property
+    def spinner(self):
+        return self.query_one(LoadingIndicator)
+
+    @property
+    def wait(self):
+        return self.query_one("#wait")
 
     @property
     def input(self):
@@ -75,18 +83,20 @@ class Tui(App):
         yield Footer()
         yield VerticalScroll(
             *[markdown_for_step(step) for step in self.session.session],
+            # The pad container helps reduce flickering when rendering fresh
+            # content and scrolling. (it's not clear why this makes a
+            # difference and it'd be nice to be rid of the workaround)
             Container(id="pad"),
             id="content",
         )
-        with Horizontal(id="inputbox"):
-            yield CancelButton(label="❌", id="cancel")
-            yield Input(placeholder="Prompt")
+        yield Input(placeholder="Prompt")
+        with Horizontal(id="wait"):
+            yield LoadingIndicator()
+            yield CancelButton(label="❌ Stop Generation", id="cancel", disabled=True)
 
     async def on_mount(self) -> None:
         self.container.scroll_end(animate=False)
         self.input.focus()
-        self.cancel_button.disabled = True
-        self.cancel_button.styles.display = "none"
 
     async def on_input_submitted(self, event) -> None:
         self.get_completion(event.value)
@@ -94,9 +104,12 @@ class Tui(App):
     @work(exclusive=True)
     async def get_completion(self, query):
         self.scroll_end()
+
+        self.input.styles.display = "none"
+        self.wait.styles.display = "block"
         self.input.disabled = True
         self.cancel_button.disabled = False
-        self.cancel_button.styles.display = "block"
+
         self.cancel_button.focus()
         output = markdown_for_step(Assistant("*query sent*"))
         await self.container.mount_all(
@@ -104,6 +117,9 @@ class Tui(App):
         )
         tokens = []
         update = asyncio.Queue(1)
+
+        for markdown in self.container.children:
+            markdown.disabled = True
 
         # Construct a fake session with only select items
         session = Session()
@@ -140,16 +156,21 @@ class Tui(App):
 
         try:
             await asyncio.gather(render_fun(), get_token_fun())
-            self.input.value = ""
         finally:
+            self.input.value = ""
             all_output = self.session.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
+
+            for markdown in self.container.children:
+                markdown.disabled = False
+
+            self.input.styles.display = "block"
+            self.wait.styles.display = "none"
             self.input.disabled = False
-            self.input.focus()
             self.cancel_button.disabled = True
-            self.cancel_button.styles.display = "none"
+            self.input.focus()
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
@@ -166,12 +187,15 @@ class Tui(App):
             return
         children = self.container.children
         idx = children.index(widget)
+        if idx == 0:
+            return
+
         while idx > 1 and not "role_user" in children[idx].classes:
             idx -= 1
         widget = children[idx]
 
-        children[idx].toggle_class("history_exclude")
-        children[idx + 1].toggle_class("history_exclude")
+        for m in children[idx : idx + 2]:
+            m.toggle_class("history_exclude")
 
     async def action_stop_generating(self):
         self.workers.cancel_all()
@@ -184,17 +208,20 @@ class Tui(App):
         self.exit()
 
     async def action_resubmit(self):
-        await self.delete_or_resubmit(True)
+        await self.redraft_or_resubmit(True)
 
-    async def action_delete(self):
-        await self.delete_or_resubmit(False)
+    async def action_redraft(self):
+        await self.redraft_or_resubmit(False)
 
-    async def delete_or_resubmit(self, resubmit):
+    async def redraft_or_resubmit(self, resubmit):
         widget = self.focused
         if not isinstance(widget, Markdown):
             return
         children = self.container.children
         idx = children.index(widget)
+        if idx < 1:
+            return
+
         while idx > 1 and not children[idx].has_class("role_user"):
             idx -= 1
         widget = children[idx]

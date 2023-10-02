@@ -40,12 +40,16 @@ Footer {
     dock: top;
 }
 
-#inputbox {
+Input, #wait {
     dock: bottom;
+}
+
+Input {
     height: 3;
 }
 
-#inputbox Button { dock: right; display: none; }
+#wait { display: none; height: 3 }
+#wait CancelButton { dock: right; border: none; margin: 0; height: 3; text-style: none}
 
 Markdown {
     margin: 0 1 0 0;
