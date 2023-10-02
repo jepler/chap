@@ -18,6 +18,11 @@ repos:
       exclude: tests
   -   id: trailing-whitespace
       exclude: tests
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+    -   id: codespell
+        args: [-w]
 - repo: https://github.com/fsfe/reuse-tool
   rev: v1.1.2
   hooks:
