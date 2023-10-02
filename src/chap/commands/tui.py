@@ -51,7 +51,7 @@ class CancelButton(Button):
 class Tui(App):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+q", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(self, api=None, session=None):
