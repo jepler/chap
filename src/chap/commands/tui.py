@@ -83,6 +83,9 @@ class Tui(App):
         yield Footer()
         yield VerticalScroll(
             *[markdown_for_step(step) for step in self.session.session],
+            # The pad container helps reduce flickering when rendering fresh
+            # content and scrolling. (it's not clear why this makes a
+            # difference and it'd be nice to be rid of the workaround)
             Container(id="pad"),
             id="content",
         )
