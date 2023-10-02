@@ -216,6 +216,9 @@ class Tui(App):
             return
         children = self.container.children
         idx = children.index(widget)
+        if idx < 1:
+            return
+
         while idx > 1 and not children[idx].has_class("role_user"):
             idx -= 1
         widget = children[idx]
