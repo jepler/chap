@@ -153,8 +153,8 @@ class Tui(App):
 
         try:
             await asyncio.gather(render_fun(), get_token_fun())
-            self.input.value = ""
         finally:
+            self.input.value = ""
             all_output = self.session.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
