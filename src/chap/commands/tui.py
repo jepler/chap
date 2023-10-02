@@ -29,7 +29,7 @@ class Markdown(
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
-        Binding("ctrl+x", "delete", "delete to end", show=True),
+        Binding("ctrl+x", "redraft", "redraft", show=True),
         Binding("ctrl+q", "toggle_history", "history toggle", show=True),
     ]
 
@@ -196,12 +196,12 @@ class Tui(App):
         self.exit()
 
     async def action_resubmit(self):
-        await self.delete_or_resubmit(True)
+        await self.redraft_or_resubmit(True)
 
-    async def action_delete(self):
-        await self.delete_or_resubmit(False)
+    async def action_redraft(self):
+        await self.redraft_or_resubmit(False)
 
-    async def delete_or_resubmit(self, resubmit):
+    async def redraft_or_resubmit(self, resubmit):
         widget = self.focused
         if not isinstance(widget, Markdown):
             return
