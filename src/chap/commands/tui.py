@@ -11,7 +11,7 @@ from textual import work
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Button, Footer, Input, Markdown
+from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
 
 from ..core import command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Session, User
@@ -60,6 +60,14 @@ class Tui(App):
         self.session = session or Session.new_session(self.api.system_message)
 
     @property
+    def spinner(self):
+        return self.query_one(LoadingIndicator)
+
+    @property
+    def wait(self):
+        return self.query_one("#wait")
+
+    @property
     def input(self):
         return self.query_one(Input)
 
@@ -78,15 +86,14 @@ class Tui(App):
             Container(id="pad"),
             id="content",
         )
-        with Horizontal(id="inputbox"):
-            yield CancelButton(label="❌", id="cancel")
-            yield Input(placeholder="Prompt")
+        yield Input(placeholder="Prompt")
+        with Horizontal(id="wait"):
+            yield LoadingIndicator()
+            yield CancelButton(label="❌ Stop Generation", id="cancel", disabled=True)
 
     async def on_mount(self) -> None:
         self.container.scroll_end(animate=False)
         self.input.focus()
-        self.cancel_button.disabled = True
-        self.cancel_button.styles.display = "none"
 
     async def on_input_submitted(self, event) -> None:
         self.get_completion(event.value)
@@ -94,9 +101,12 @@ class Tui(App):
     @work(exclusive=True)
     async def get_completion(self, query):
         self.scroll_end()
+
+        self.input.styles.display = "none"
+        self.wait.styles.display = "block"
         self.input.disabled = True
         self.cancel_button.disabled = False
-        self.cancel_button.styles.display = "block"
+
         self.cancel_button.focus()
         output = markdown_for_step(Assistant("*query sent*"))
         await self.container.mount_all(
@@ -146,10 +156,12 @@ class Tui(App):
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
+
+            self.input.styles.display = "block"
+            self.wait.styles.display = "none"
             self.input.disabled = False
-            self.input.focus()
             self.cancel_button.disabled = True
-            self.cancel_button.styles.display = "none"
+            self.input.focus()
 
     def scroll_end(self):
         self.call_after_refresh(self.container.scroll_end)
