@@ -4,7 +4,7 @@
 
 [build-system]
 requires = [
-    "setuptools>=61",
+    "setuptools>=68.2.2",
     "setuptools_scm[toml]>=6.0",
 ]
 build-backend = "setuptools.build_meta"
@@ -19,18 +19,7 @@ where = ["src"]
 name="chap"
 authors = [{name = "Jeff Epler", email = "jepler@gmail.com"}]
 description = "Interact with the OpenAI ChatGPT API (and other text generators)"
-dynamic = ["readme","version"]
-dependencies = [
-    "click",
-    "dataclasses_json",
-    "httpx",
-    "lorem-text",
-    "platformdirs",
-    "simple_parsing",
-    "textual>=0.18.0",
-    "tiktoken",
-    "websockets",
-]
+dynamic = ["readme","version","dependencies"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -50,3 +39,4 @@ chap = "chap.__main__:main"
 write_to = "src/chap/__version__.py"
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type="text/markdown"}
+dependencies = {file = "requirements.txt"}
