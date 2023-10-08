@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-# chap.py - Simple shim script to demonstrate how to call chap library.
+# chap.py - Simple shim script to demonstrate how to use the chap library.
 
 import pathlib
 import sys
