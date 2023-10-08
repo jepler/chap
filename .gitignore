@@ -7,3 +7,4 @@ __pycache__
 /build
 /dist
 /src/chap/__version__.py
+/venv

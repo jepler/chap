@@ -13,25 +13,57 @@ SPDX-License-Identifier: MIT
 
 ## System requirements
 
-Chap is developed on Linux with Python 3.11. Due to use of the `list[int]` style of type hints, it is known not to work on 3.8 and older; the target minimum Python version is 3.9 (debian oldstable).
+Chap is developed on Linux with Python 3.11. Due to use of the `list[int]` style of type hints, it is known to not work on Python 3.8 and older. The target minimum Python version is 3.9 (debian oldstable).
 
 ## Installation
 
-Install with e.g., `pipx install chap`, or `pip install chap` in a virtual environment.
+If you want `chap` available as a command, just install with  `pipx install chap` or `pip install chap`.
+
+Use a virtual environment unless you want it installed globally.
 
 ## Installation for development
 
-Install in developer mode e.g., with `pip install -e .`.
-In this mode, you get the "chap" commandline program installed but can edit the source files in place.
-This is the [recommended practice per PyPA](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
+Use one of the following two methods to run `chap` as a command, with the ability to edit the source files. You are welcome to submit valuable changes as [a pull request](https://github.com/jepler/chap/pulls).
 
-A shim script `chap.py` is included so that the older development style of `pip install -r requirements.txt` + `python chap.py` (or `./chap.py`) functions as well.
+### Via `pip install --editable .`
+
+This is an "editable install", as [recommended by the Python Packaging Authority](https://setuptools.pypa.io/en/latest/userguide/development_mode.html).
+
+Change directory to the root of the `chap` project.
+
+Activate your virtual environment, then install `chap` in development mode:
+
+```shell
+pip install --editable .
+```
+
+In this mode, you get the `chap` command-line program installed, but you are able to edit the source files in the `src` directory in place.
+
+### Via `chap-dev.py`
+
+A simple shim script called `chap-dev.py` is included to demonstrate how to load and run the `chap` library without installing `chap` in development mode. This method may be more familiar to some developers.
+
+Change directory to the root of the `chap` project.
+
+Activate your virtual environment, then install requirements:
+
+```shell
+pip install -r requirements.txt
+```
+
+Run the shim script (with optional command flags as appropriate):
+
+```shell
+./chap-dev.py
+```
+
+In this mode, you can edit the source files in the `src` directory in place, and the shim script will pick up the changes via the `import` directive.
 
 ## Configuration
 
 Put your OpenAI API key in the platform configuration directory for chap, e.g., on linux/unix systems at `~/.config/chap/openai_api_key`
 
-## Commandline usage
+## Command-line usage
 
  * `chap ask "What advice would you give a 20th century human visiting the 21st century for the first time?"`
 
@@ -42,11 +74,11 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
  * `chap grep needle`
 
 ## Interactive terminal usage
- * chap tui
+ * `chap tui`
 
-## Sessions & Commandline Parameters
+## Sessions & Command-line Parameters
 
-Details of session handling & commandline arguments are in flux.
+Details of session handling & command-line arguments are in flux.
 
 By default, a new session is created. It is saved to the user's state directory
 (e.g., `~/.local/state/chap` on linux/unix systems).
@@ -68,12 +100,16 @@ You can select the text generating backend with the `-b` flag:
 
 ## Environment variables
 
-The backend can be set with `CHAP_BACKEND`.
+The backend can be set with the `CHAP_BACKEND` environment variable.
+
 Backend settings can be set with `CHAP_<backend_name>_<parameter_name>`, with `backend_name` and `parameter_name` all in caps.
+
 For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama\_cpp back-end.
 
 ## Importing from ChatGPT
 
-The userscript https://github.com/pionxzh/chatgpt-exporter can export chat logs from chat.openai.com in a json format.
-This format is different than chap's, especially since chap currently only represents a single branch of conversation in one log.
-You can use the `chap import` command to import all the branches of a chatgpt-style chatlog in json format into a series of chap-style chat logs.
+The userscript https://github.com/pionxzh/chatgpt-exporter can export chat logs from chat.openai.com in a JSON format.
+
+This format is different than chap's, especially since `chap` currently only represents a single branch of conversation in one log.
+
+You can use the `chap import` command to import all the branches of a chatgpt-style chatlog in JSON format into a series of `chap`-style chat logs.
