@@ -19,6 +19,4 @@ if __name__ == "__main__":
 
     main()
 else:
-    raise ImportError(
-        "'chap-dev.py' is meant for direct execution, not for import."
-    )
+    raise ImportError("'chap-dev.py' is meant for direct execution, not for import.")
