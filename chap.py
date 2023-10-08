@@ -3,10 +3,15 @@
 #
 # SPDX-License-Identifier: MIT
 
+# chap.py - Simple shim script to demonstrate how to call chap library.
+
 import pathlib
 import sys
 
-sys.path[0] = str(pathlib.Path(__file__).parent / "src")
+# Ensure the 'src' directory is on the system path so we can import 'chap'
+project_root = pathlib.Path(__file__).parent
+src_path = project_root / "src"
+sys.path.insert(0, str(src_path))
 
 if __name__ == "__main__":
     # pylint: disable=import-error,no-name-in-module
@@ -15,5 +20,5 @@ if __name__ == "__main__":
     main()
 else:
     raise ImportError(
-        "this script exists to facilitate running 'python -mchap' in the top directory; it should not be imported"
+        "'chap.py' is meant for direct execution, not for import."
     )
