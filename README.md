@@ -39,9 +39,9 @@ pip install --editable .
 
 In this mode, you get the `chap` command-line program installed, but you are able to edit the source files in the `src` directory in place.
 
-### Via `chap.py`
+### Via `chap-dev.py`
 
-A simple shim script called `chap.py` is included to demonstrate how to load and run the `chap` library without installing `chap` in development mode. This may be more familiar to some developers.
+A simple shim script called `chap-dev.py` is included to demonstrate how to load and run the `chap` library without installing `chap` in development mode. This method may be more familiar to some developers.
 
 Change directory to the root of the `chap` project.
 
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 Run the shim script (with optional command flags as appropriate):
 
 ```shell
-./chap.py
+./chap-dev.py
 ```
 
 In this mode, you can edit the source files in the `src` directory in place, and the shim script will pick up the changes via the `import` directive.

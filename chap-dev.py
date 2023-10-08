@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-# chap.py - Simple shim script to demonstrate how to use the chap library.
+# chap-dev.py - Simple shim script to demonstrate how to use the chap library.
 
 import pathlib
 import sys
@@ -20,5 +20,5 @@ if __name__ == "__main__":
     main()
 else:
     raise ImportError(
-        "'chap.py' is meant for direct execution, not for import."
+        "'chap-dev.py' is meant for direct execution, not for import."
     )
