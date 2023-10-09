@@ -14,7 +14,7 @@ If you want to discuss a possible enhancement before beginning work, opening a f
 
 ## Code style & linting
 
-This project uses (pre-commit)[https://pre-commit.com/] to maintain the code's style and perform some quality checks.
+This project uses [pre-commit](https://pre-commit.com/) to maintain the code's style and perform some quality checks.
 First, install pre-commit: `pip install pre-commit`.
 Then, enable pre-commit via git "hooks" so that (most of the time) pre-commit checks are performed at the time a git commit is made: `pre-commit install`.
 If necessary, you can run pre-commit checks manually for one or more files: `pre-commit run --all` or `pre-commit run --files src/chap/main.py`.
