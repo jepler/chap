@@ -59,6 +59,14 @@ Run the shim script (with optional command flags as appropriate):
 
 In this mode, you can edit the source files in the `src` directory in place, and the shim script will pick up the changes via the `import` directive.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Code of Conduct
+
+See [CODE\_OF\_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 ## Configuration
 
 Put your OpenAI API key in the platform configuration directory for chap, e.g., on linux/unix systems at `~/.config/chap/openai_api_key`
