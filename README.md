@@ -27,6 +27,14 @@ This is the [recommended practice per PyPA](https://setuptools.pypa.io/en/latest
 
 A shim script `chap.py` is included so that the older development style of `pip install -r requirements.txt` + `python chap.py` (or `./chap.py`) functions as well.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Code of Conduct
+
+See [CODE\_OF\_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 ## Configuration
 
 Put your OpenAI API key in the platform configuration directory for chap, e.g., on linux/unix systems at `~/.config/chap/openai_api_key`
