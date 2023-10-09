@@ -21,7 +21,7 @@ If necessary, you can run pre-commit checks manually for one or more files: `pre
 
 Some tools (e.g., black) will automatically update the working files with whatever changes they recommend.
 Other tools (e.g., pylint) will just tell you what is wrong and require your intervention to fix it.
-It is acceptable to use hints (e.g., `#  pylint: ignore=...` when it's preferable to actually resolving the reported problem
+It is acceptable to use hints like `#  pylint: ignore=diagnostic-kind` when it's preferable to actually resolving the reported problem
 (e.g., if the report is spurious or a non-standard construct is used for well-considered reasons)
 
 When you create a pull request, `pre-commit run --all` is run in a standardized environment, which occasionally catches things that were not seen locally.
