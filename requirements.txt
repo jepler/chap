@@ -10,4 +10,5 @@ platformdirs
 simple_parsing
 textual>=0.18.0
 tiktoken
+transformers>=4.34
 websockets
