@@ -4,6 +4,7 @@
 
 import functools
 import json
+import warnings
 from dataclasses import dataclass
 from typing import AsyncGenerator, cast
 
@@ -36,16 +37,20 @@ class EncodingMeta:
     @functools.cache
     def from_model(cls, model: str) -> "EncodingMeta":
         if model == "gpt-3.5-turbo":
-            # print("Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
+            warnings.warn(
+                "Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613."
+            )
             model = "gpt-3.5-turbo-0613"
         if model == "gpt-4":
-            # print("Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
+            warnings.warn(
+                "Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613."
+            )
             model = "gpt-4-0613"
 
         try:
             encoding = tiktoken.encoding_for_model(model)
         except KeyError:
-            print("Warning: model not found. Using cl100k_base encoding.")
+            warnings.warn("Warning: model not found. Using cl100k_base encoding.")
             encoding = tiktoken.get_encoding("cl100k_base")
 
         if model in {
@@ -55,6 +60,7 @@ class EncodingMeta:
             "gpt-4-32k-0314",
             "gpt-4-0613",
             "gpt-4-32k-0613",
+            "gpt-4-1106-preview",
         }:
             tokens_per_message = 3
             tokens_per_name = 1
