@@ -112,7 +112,7 @@ The backend can be set with the `CHAP_BACKEND` environment variable.
 
 Backend settings can be set with `CHAP_<backend_name>_<parameter_name>`, with `backend_name` and `parameter_name` all in caps.
 
-For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama\_cpp back-end.
+For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama-cpp back-end.
 
 ## Importing from ChatGPT
 
@@ -121,3 +121,19 @@ The userscript https://github.com/pionxzh/chatgpt-exporter can export chat logs 
 This format is different than chap's, especially since `chap` currently only represents a single branch of conversation in one log.
 
 You can use the `chap import` command to import all the branches of a chatgpt-style chatlog in JSON format into a series of `chap`-style chat logs.
+
+## Plug-ins
+
+Chap supports back-end and command plug-ins.
+
+"Back-ends" add additional text generators.
+
+"Commands" add new ways to interact with text generators, session data, and so forth.
+
+Install a plugin with `pip install` or `pipx inject` (depending how you installed chap) and then use it as normal.
+
+[chap-backend-replay](https://pypi.org/project/chap-backend-replay/) is an example back-end plug-in. It replays answers from a previous session.
+
+[chap-command-explain](https://pypi.org/project/chap-command-explain/) is an example command plug-in. It is similar to `chap ask`.
+
+At this time, there is no stability guarantee for the API of commands or backends.
