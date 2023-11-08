@@ -55,6 +55,7 @@ def configure_api_from_environment(api_name, api):
 
 
 def get_api(name="openai_chatgpt"):
+    name = name.replace("-", "_")
     result = importlib.import_module(f"{__package__}.backends.{name}").factory()
     configure_api_from_environment(name, result)
     return result
