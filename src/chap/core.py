@@ -11,6 +11,7 @@ import pathlib
 import pkgutil
 import subprocess
 from dataclasses import MISSING, dataclass, fields
+from types import UnionType
 from typing import Any, AsyncGenerator, Callable, cast
 
 import click
@@ -171,7 +172,10 @@ def format_backend_help(api: Backend, formatter: click.HelpFormatter) -> None:
             if doc:
                 doc += " "
             doc += f"(Default: {default!r})"
-            typename = f.type.__name__
+            f_type = f.type
+            if isinstance(f_type, UnionType):
+                f_type = f_type.__args__[0]
+            typename = f_type.__name__
             rows.append((f"-B {name}:{typename.upper()}", doc))
         formatter.write_dl(rows)
 
@@ -191,8 +195,11 @@ def set_backend_option(  # pylint: disable=unused-argument
         field = all_fields.get(name)
         if field is None:
             raise click.BadParameter(f"Invalid parameter {name}")
+        f_type = field.type
+        if isinstance(f_type, UnionType):
+            f_type = f_type.__args__[0]
         try:
-            tv = field.type(value)
+            tv = f_type(value)
         except ValueError as e:
             raise click.BadParameter(
                 f"Invalid value for {name} with value {value}: {e}"
