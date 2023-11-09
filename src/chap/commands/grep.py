@@ -18,7 +18,7 @@ from .render import to_markdown
 
 
 def list_files_matching_rx(
-    rx: re.Pattern, conversations_path: Optional[str] = None
+    rx: re.Pattern, conversations_path: Optional[pathlib.Path] = None
 ) -> Iterable[Tuple[pathlib.Path, Message]]:
     for conversation in (conversations_path or default_conversations_path).glob(
         "*.json"
