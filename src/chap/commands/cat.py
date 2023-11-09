@@ -4,15 +4,17 @@
 
 import click
 
-from ..core import command_uses_existing_session
+from ..core import Obj, command_uses_existing_session
 from ..session import Role
 
 
 @command_uses_existing_session
 @click.option("--no-system", is_flag=True)
-def main(obj, no_system):
+def main(obj: Obj, no_system: bool) -> None:
     """Print session in plaintext"""
     session = obj.session
+    if not session:
+        return
 
     first = True
     for row in session:

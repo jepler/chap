@@ -6,17 +6,20 @@ from __future__ import annotations
 
 import json
 import pathlib
+from typing import Any, Iterator, TextIO
 
 import click
 import rich
 
 from ..core import conversations_path, new_session_path
-from ..session import Message, Role, new_session, session_to_file
+from ..session import Message, Role, Session, new_session, session_to_file
 
 console = rich.get_console()
 
 
-def iter_sessions(name, content, session_in, node_id):
+def iter_sessions(
+    name: str, content: Any, session_in: Session, node_id: str
+) -> Iterator[tuple[str, Session]]:
     node = content["mapping"][node_id]
     session = session_in[:]
 
@@ -37,7 +40,7 @@ def iter_sessions(name, content, session_in, node_id):
         yield node_id, session
 
 
-def do_import(output_directory, f):
+def do_import(output_directory: pathlib.Path, f: TextIO) -> None:
     stem = pathlib.Path(f.name).stem
     content = json.load(f)
     session = new_session()
@@ -66,7 +69,7 @@ def do_import(output_directory, f):
 @click.argument(
     "files", nargs=-1, required=True, type=click.File("r", encoding="utf-8")
 )
-def main(output_directory, files):
+def main(output_directory: pathlib.Path, files: list[TextIO]) -> None:
     """Import files from the ChatGPT webui
 
     This understands the format produced by

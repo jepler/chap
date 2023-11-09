@@ -46,6 +46,9 @@ jobs:
     - name: install deps
       run: pip install -r requirements-dev.txt
 
+    - name: check types with mypy
+      run: make
+
     - name: Build release
       run: python -mbuild
 

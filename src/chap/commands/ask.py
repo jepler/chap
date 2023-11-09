@@ -4,43 +4,52 @@
 
 import asyncio
 import sys
+from typing import Iterable, Protocol
 
 import click
 import rich
 
-from ..core import command_uses_new_session
-from ..session import session_to_file
+from ..core import Backend, Obj, command_uses_new_session
+from ..session import Session, session_to_file
 
 bold = "\033[1m"
 nobold = "\033[m"
 
 
-def ipartition(s, sep):
+def ipartition(s: str, sep: str) -> Iterable[tuple[str, str]]:
     rest = s
     while rest:
         first, opt_sep, rest = rest.partition(sep)
         yield (first, opt_sep)
 
 
+class Printable(Protocol):
+    def raw(self, s: str) -> None:
+        ...
+
+    def add(self, s: str) -> None:
+        ...
+
+
 class DumbPrinter:
-    def raw(self, s):
+    def raw(self, s: str) -> None:
         pass
 
-    def add(self, s):
+    def add(self, s: str) -> None:
         print(s, end="")
 
 
 class WrappingPrinter:
-    def __init__(self, width=None):
+    def __init__(self, width: int | None = None) -> None:
         self._width = width or rich.get_console().width
         self._column = 0
         self._line = ""
         self._sp = ""
 
-    def raw(self, s):
+    def raw(self, s: str) -> None:
         print(s, end="")
 
-    def add(self, s):
+    def add(self, s: str) -> None:
         for line, opt_nl in ipartition(s, "\n"):
             for word, opt_sp in ipartition(line, " "):
                 newlen = len(self._line) + len(self._sp) + len(word)
@@ -64,15 +73,16 @@ class WrappingPrinter:
                 self._sp = ""
 
 
-def verbose_ask(api, session, q, print_prompt, **kw):
+def verbose_ask(api: Backend, session: Session, q: str, print_prompt: bool) -> str:
+    printer: Printable
     if sys.stdout.isatty():
         printer = WrappingPrinter()
     else:
         printer = DumbPrinter()
-    tokens = []
+    tokens: list[str] = []
 
-    async def work():
-        async for token in api.aask(session, q, **kw):
+    async def work() -> None:
+        async for token in api.aask(session, q):
             printer.add(token)
 
     if print_prompt:
@@ -91,11 +101,16 @@ def verbose_ask(api, session, q, print_prompt, **kw):
 @command_uses_new_session
 @click.option("--print-prompt/--no-print-prompt", default=True)
 @click.argument("prompt", nargs=-1, required=True)
-def main(obj, prompt, print_prompt):
+def main(obj: Obj, prompt: str, print_prompt: bool) -> None:
     """Ask a question (command-line argument is passed as prompt)"""
     session = obj.session
+    assert session is not None
+
     session_filename = obj.session_filename
+    assert session_filename is not None
+
     api = obj.api
+    assert api is not None
 
     #    symlink_session_filename(session_filename)
 

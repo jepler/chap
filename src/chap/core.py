@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=import-outside-toplevel
 
+import asyncio
 import datetime
 import importlib
 import os
@@ -10,33 +11,62 @@ import pathlib
 import pkgutil
 import subprocess
 from dataclasses import MISSING, dataclass, fields
+from typing import Any, AsyncGenerator, Callable, cast
 
 import click
 import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
+from typing_extensions import Protocol
 
 from . import backends, commands  # pylint: disable=no-name-in-module
-from .session import Message, System, session_from_file
+from .session import Message, Session, System, session_from_file
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
 
 
-def last_session_path():
+class ABackend(Protocol):  # pylint: disable=too-few-public-methods
+    def aask(self, session: Session, query: str) -> AsyncGenerator[str, None]:
+        """Make a query, updating the session with the query and response, returning the query token by token"""
+
+
+class Backend(ABackend, Protocol):
+    parameters: Any
+    system_message: str
+
+    def ask(self, session: Session, query: str) -> str:
+        """Make a query, updating the session with the query and response, returning the query"""
+
+
+class AutoAskMixin:  # pylint: disable=too-few-public-methods
+    """Mixin class for backends implementing aask"""
+
+    def ask(self, session: Session, query: str) -> str:
+        tokens: list[str] = []
+
+        async def inner() -> None:
+            # https://github.com/pylint-dev/pylint/issues/5761
+            async for token in self.aask(session, query):  # type: ignore
+                tokens.append(token)
+
+        asyncio.run(inner())
+        return "".join(tokens)
+
+
+def last_session_path() -> pathlib.Path | None:
     result = max(
         conversations_path.glob("*.json"), key=lambda p: p.stat().st_mtime, default=None
     )
-    print(result)
     return result
 
 
-def new_session_path(opt_path=None):
+def new_session_path(opt_path: pathlib.Path | None = None) -> pathlib.Path:
     return opt_path or conversations_path / (
         datetime.datetime.now().isoformat().replace(":", "_") + ".json"
     )
 
 
-def configure_api_from_environment(api_name, api):
+def configure_api_from_environment(api_name: str, api: Backend) -> None:
     if not hasattr(api, "parameters"):
         return
 
@@ -54,44 +84,46 @@ def configure_api_from_environment(api_name, api):
         setattr(api.parameters, field.name, tv)
 
 
-def get_api(name="openai_chatgpt"):
+def get_api(name: str = "openai_chatgpt") -> Backend:
     name = name.replace("-", "_")
-    result = importlib.import_module(f"{__package__}.backends.{name}").factory()
+    result = cast(
+        Backend, importlib.import_module(f"{__package__}.backends.{name}").factory()
+    )
     configure_api_from_environment(name, result)
     return result
 
 
-def ask(*args, **kw):
-    return get_api().ask(*args, **kw)
-
-
-def aask(*args, **kw):
-    return get_api().aask(*args, **kw)
-
-
-def do_session_continue(ctx, param, value):
+def do_session_continue(
+    ctx: click.Context, param: click.Parameter, value: pathlib.Path | None
+) -> None:
     if value is None:
         return
     if ctx.obj.session is not None:
         raise click.BadParameter(
-            param, "--continue-session, --last and --new-session are mutually exclusive"
+            "--continue-session, --last and --new-session are mutually exclusive",
+            param=param,
         )
     ctx.obj.session = session_from_file(value)
     ctx.obj.session_filename = value
 
 
-def do_session_last(ctx, param, value):  # pylint: disable=unused-argument
+def do_session_last(
+    ctx: click.Context, param: click.Parameter, value: bool
+) -> None:  # pylint: disable=unused-argument
     if not value:
         return
     do_session_continue(ctx, param, last_session_path())
 
 
-def do_session_new(ctx, param, value):
+def do_session_new(
+    ctx: click.Context, param: click.Parameter, value: pathlib.Path
+) -> None:
     if ctx.obj.session is not None:
         if value is None:
             return
-        raise click.BadOptionUsage(
-            param, "--continue-session, --last and --new-session are mutually exclusive"
+        raise click.BadParameter(
+            "--continue-session, --last and --new-session are mutually exclusive",
+            param=param,
         )
     session_filename = new_session_path(value)
     system_message = ctx.obj.system_message or ctx.obj.api.system_message
@@ -99,20 +131,24 @@ def do_session_new(ctx, param, value):
     ctx.obj.session_filename = session_filename
 
 
-def colonstr(arg):
+def colonstr(arg: str) -> tuple[str, str]:
     if ":" not in arg:
         raise click.BadParameter("must be of the form 'name:value'")
-    return arg.split(":", 1)
+    return cast(tuple[str, str], tuple(arg.split(":", 1)))
 
 
-def set_system_message(ctx, param, value):  # pylint: disable=unused-argument
+def set_system_message(  # pylint: disable=unused-argument
+    ctx: click.Context, param: click.Parameter, value: str
+) -> None:
     if value and value.startswith("@"):
         with open(value[1:], "r", encoding="utf-8") as f:
             value = f.read().rstrip()
     ctx.obj.system_message = value
 
 
-def set_backend(ctx, param, value):  # pylint: disable=unused-argument
+def set_backend(  # pylint: disable=unused-argument
+    ctx: click.Context, param: click.Parameter, value: str
+) -> None:
     if value == "list":
         formatter = ctx.make_formatter()
         format_backend_list(formatter)
@@ -125,7 +161,7 @@ def set_backend(ctx, param, value):  # pylint: disable=unused-argument
         raise click.BadParameter(str(e))
 
 
-def format_backend_help(api, formatter):
+def format_backend_help(api: Backend, formatter: click.HelpFormatter) -> None:
     with formatter.section(f"Backend options for {api.__class__.__name__}"):
         rows = []
         for f in fields(api.parameters):
@@ -135,11 +171,14 @@ def format_backend_help(api, formatter):
             if doc:
                 doc += " "
             doc += f"(Default: {default!r})"
-            rows.append((f"-B {name}:{f.type.__name__.upper()}", doc))
+            typename = f.type.__name__
+            rows.append((f"-B {name}:{typename.upper()}", doc))
         formatter.write_dl(rows)
 
 
-def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
+def set_backend_option(  # pylint: disable=unused-argument
+    ctx: click.Context, param: click.Parameter, opts: list[tuple[str, str]]
+) -> None:
     api = ctx.obj.api
     if not hasattr(api, "parameters"):
         raise click.BadParameter(
@@ -147,7 +186,7 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         )
     all_fields = dict((f.name.replace("_", "-"), f) for f in fields(api.parameters))
 
-    def set_one_backend_option(kv):
+    def set_one_backend_option(kv: tuple[str, str]) -> None:
         name, value = kv
         field = all_fields.get(name)
         if field is None:
@@ -164,7 +203,7 @@ def set_backend_option(ctx, param, opts):  # pylint: disable=unused-argument
         set_one_backend_option(kv)
 
 
-def format_backend_list(formatter):
+def format_backend_list(formatter: click.HelpFormatter) -> None:
     all_backends = []
     for pi in pkgutil.walk_packages(backends.__path__):
         name = pi.name
@@ -186,7 +225,7 @@ def format_backend_list(formatter):
         formatter.write_dl(rows)
 
 
-def uses_session(f):
+def uses_session(f: click.decorators.FC) -> Callable[[], None]:
     f = click.option(
         "--continue-session",
         "-s",
@@ -198,18 +237,15 @@ def uses_session(f):
     f = click.option(
         "--last", is_flag=True, callback=do_session_last, expose_value=False
     )(f)
-    f = click.pass_obj(f)
-    return f
+    return click.pass_obj(f)
 
 
-def command_uses_existing_session(f):
-    f = uses_session(f)
-    f = click.command()(f)
-    return f
+def command_uses_existing_session(f: click.decorators.FC) -> click.Command:
+    return click.command()(uses_session(f))
 
 
-def command_uses_new_session(f):
-    f = uses_session(f)
+def command_uses_new_session(f_in: click.decorators.FC) -> click.Command:
+    f = uses_session(f_in)
     f = click.option(
         "--new-session",
         "-n",
@@ -218,11 +254,12 @@ def command_uses_new_session(f):
         callback=do_session_new,
         expose_value=False,
     )(f)
-    f = click.command()(f)
-    return f
+    return click.command()(f)
 
 
-def version_callback(ctx, param, value) -> None:  # pylint: disable=unused-argument
+def version_callback(  # pylint: disable=unused-argument
+    ctx: click.Context, param: click.Parameter, value: None
+) -> None:
     if not value or ctx.resilient_parsing:
         return
 
@@ -247,17 +284,24 @@ def version_callback(ctx, param, value) -> None:  # pylint: disable=unused-argum
 
 @dataclass
 class Obj:
-    api: object = None
-    system_message: object = None
+    api: Backend | None = None
+    system_message: str | None = None
     session: list[Message] | None = None
+    session_filename: pathlib.Path | None = None
 
 
 class MyCLI(click.MultiCommand):
-    def make_context(self, info_name, args, parent=None, **extra):
+    def make_context(
+        self,
+        info_name: str | None,
+        args: list[str],
+        parent: click.Context | None = None,
+        **extra: Any,
+    ) -> click.Context:
         result = super().make_context(info_name, args, parent, obj=Obj(), **extra)
         return result
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx: click.Context) -> list[str]:
         rv = []
         for pi in pkgutil.walk_packages(commands.__path__):
             name = pi.name
@@ -266,13 +310,18 @@ class MyCLI(click.MultiCommand):
         rv.sort()
         return rv
 
-    def get_command(self, ctx, cmd_name):
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command:
         try:
-            return importlib.import_module("." + cmd_name, commands.__name__).main
+            return cast(
+                click.Command,
+                importlib.import_module("." + cmd_name, commands.__name__).main,
+            )
         except ModuleNotFoundError as exc:
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
-    def format_options(self, ctx, formatter):
+    def format_options(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         super().format_options(ctx, formatter)
         api = ctx.obj.api or get_api()
         if hasattr(api, "parameters"):

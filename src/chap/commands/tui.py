@@ -5,19 +5,20 @@
 import asyncio
 import subprocess
 import sys
+from typing import cast
 
 from markdown_it import MarkdownIt
 from textual import work
-from textual.app import App
+from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
 
-from ..core import command_uses_new_session, get_api, new_session_path
-from ..session import Assistant, User, new_session, session_to_file
+from ..core import Backend, Obj, command_uses_new_session, get_api, new_session_path
+from ..session import Assistant, Message, Session, User, new_session, session_to_file
 
 
-def parser_factory():
+def parser_factory() -> MarkdownIt:
     parser = MarkdownIt()
     parser.options["html"] = False
     return parser
@@ -34,7 +35,7 @@ class ChapMarkdown(
     ]
 
 
-def markdown_for_step(step):
+def markdown_for_step(step: Message) -> ChapMarkdown:
     return ChapMarkdown(
         step.content.strip() or "…",
         classes="role_" + step.role,
@@ -48,13 +49,15 @@ class CancelButton(Button):
     ]
 
 
-class Tui(App):
+class Tui(App[None]):
     CSS_PATH = "tui.css"
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
     ]
 
-    def __init__(self, api=None, session=None):
+    def __init__(
+        self, api: Backend | None = None, session: Session | None = None
+    ) -> None:
         super().__init__()
         self.api = api or get_api("lorem")
         self.session = (
@@ -62,26 +65,26 @@ class Tui(App):
         )
 
     @property
-    def spinner(self):
+    def spinner(self) -> LoadingIndicator:
         return self.query_one(LoadingIndicator)
 
     @property
-    def wait(self):
-        return self.query_one("#wait")
+    def wait(self) -> VerticalScroll:
+        return cast(VerticalScroll, self.query_one("#wait"))
 
     @property
-    def input(self):
+    def input(self) -> Input:
         return self.query_one(Input)
 
     @property
-    def cancel_button(self):
+    def cancel_button(self) -> CancelButton:
         return self.query_one(CancelButton)
 
     @property
-    def container(self):
-        return self.query_one("#content")
+    def container(self) -> VerticalScroll:
+        return cast(VerticalScroll, self.query_one("#content"))
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         yield Footer()
         yield VerticalScroll(
             *[markdown_for_step(step) for step in self.session],
@@ -100,11 +103,11 @@ class Tui(App):
         self.container.scroll_end(animate=False)
         self.input.focus()
 
-    async def on_input_submitted(self, event) -> None:
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
         self.get_completion(event.value)
 
     @work(exclusive=True)
-    async def get_completion(self, query):
+    async def get_completion(self, query: str) -> None:
         self.scroll_end()
 
         self.input.styles.display = "none"
@@ -117,8 +120,8 @@ class Tui(App):
         await self.container.mount_all(
             [markdown_for_step(User(query)), output], before="#pad"
         )
-        tokens = []
-        update = asyncio.Queue(1)
+        tokens: list[str] = []
+        update: asyncio.Queue[bool] = asyncio.Queue(1)
 
         for markdown in self.container.children:
             markdown.disabled = True
@@ -137,14 +140,14 @@ class Tui(App):
             ]
         )
 
-        async def render_fun():
+        async def render_fun() -> None:
             while await update.get():
                 if tokens:
                     output.update("".join(tokens).strip())
                 self.container.scroll_end()
                 await asyncio.sleep(0.1)
 
-        async def get_token_fun():
+        async def get_token_fun() -> None:
             async for token in self.api.aask(session, query):
                 tokens.append(token)
                 message.content += token
@@ -174,16 +177,16 @@ class Tui(App):
             self.cancel_button.disabled = True
             self.input.focus()
 
-    def scroll_end(self):
+    def scroll_end(self) -> None:
         self.call_after_refresh(self.container.scroll_end)
 
-    def action_yank(self):
+    def action_yank(self) -> None:
         widget = self.focused
         if isinstance(widget, ChapMarkdown):
-            content = widget._markdown  # pylint: disable=protected-access
+            content = widget._markdown or ""  # pylint: disable=protected-access
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
-    def action_toggle_history(self):
+    def action_toggle_history(self) -> None:
         widget = self.focused
         if not isinstance(widget, ChapMarkdown):
             return
@@ -199,23 +202,25 @@ class Tui(App):
         for m in children[idx : idx + 2]:
             m.toggle_class("history_exclude")
 
-    async def action_stop_generating(self):
+    async def action_stop_generating(self) -> None:
         self.workers.cancel_all()
 
-    async def on_button_pressed(self, event):  # pylint: disable=unused-argument
+    async def on_button_pressed(  # pylint: disable=unused-argument
+        self, event: Button.Pressed
+    ) -> None:
         self.workers.cancel_all()
 
-    async def action_quit(self):
+    async def action_quit(self) -> None:
         self.workers.cancel_all()
         self.exit()
 
-    async def action_resubmit(self):
+    async def action_resubmit(self) -> None:
         await self.redraft_or_resubmit(True)
 
-    async def action_redraft(self):
+    async def action_redraft(self) -> None:
         await self.redraft_or_resubmit(False)
 
-    async def redraft_or_resubmit(self, resubmit):
+    async def redraft_or_resubmit(self, resubmit: bool) -> None:
         widget = self.focused
         if not isinstance(widget, ChapMarkdown):
             return
@@ -244,11 +249,14 @@ class Tui(App):
 
 
 @command_uses_new_session
-def main(obj):
+def main(obj: Obj) -> None:
     """Start interactive terminal user interface session"""
     api = obj.api
+    assert api is not None
     session = obj.session
+    assert session is not None
     session_filename = obj.session_filename
+    assert session_filename is not None
 
     tui = Tui(api, session)
     tui.run()

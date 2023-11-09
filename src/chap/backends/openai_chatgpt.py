@@ -5,12 +5,14 @@
 import functools
 import json
 from dataclasses import dataclass
+from typing import AsyncGenerator, cast
 
 import httpx
 import tiktoken
 
+from ..core import Backend
 from ..key import get_key
-from ..session import Assistant, User
+from ..session import Assistant, Message, Session, User, session_to_list
 
 
 @dataclass(frozen=True)
@@ -20,19 +22,19 @@ class EncodingMeta:
     tokens_per_name: int
 
     @functools.lru_cache()
-    def encode(self, s):
+    def encode(self, s: str) -> list[int]:
         return self.encoding.encode(s)
 
-    def num_tokens_for_message(self, message):
+    def num_tokens_for_message(self, message: Message) -> int:
         # n.b. chap doesn't use message.name yet
         return len(self.encode(message.role)) + len(self.encode(message.content))
 
-    def num_tokens_for_messages(self, messages):
+    def num_tokens_for_messages(self, messages: Session) -> int:
         return sum(self.num_tokens_for_message(message) for message in messages) + 3
 
     @classmethod
     @functools.cache
-    def from_model(cls, model):
+    def from_model(cls, model: str) -> "EncodingMeta":
         if model == "gpt-3.5-turbo":
             # print("Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
             model = "gpt-3.5-turbo-0613"
@@ -77,12 +79,12 @@ class ChatGPT:
         max_request_tokens: int = 1024
         """The approximate greatest number of tokens to send in a request. When the session is long, the system prompt and 1 or more of the most recent interaction steps are sent."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.parameters = self.Parameters()
 
     system_message: str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language."
 
-    def make_full_prompt(self, all_history):
+    def make_full_prompt(self, all_history: Session) -> Session:
         encoding = EncodingMeta.from_model(self.parameters.model)
         result = [all_history[0]]  # Assumed to be system prompt
         left = self.parameters.max_request_tokens - encoding.num_tokens_for_messages(
@@ -99,15 +101,13 @@ class ChatGPT:
         result.extend(reversed(parts))
         return result
 
-    def ask(self, session, query, *, timeout=60):
+    def ask(self, session: Session, query: str, *, timeout: float = 60) -> str:
         full_prompt = self.make_full_prompt(session + [User(query)])
         response = httpx.post(
             "https://api.openai.com/v1/chat/completions",
             json={
                 "model": self.parameters.model,
-                "messages": full_prompt.to_dict()[  # pylint: disable=no-member
-                    "session"
-                ],
+                "messages": session_to_list(full_prompt),
             },  # pylint: disable=no-member
             headers={
                 "Authorization": f"Bearer {self.get_key()}",
@@ -115,20 +115,20 @@ class ChatGPT:
             timeout=timeout,
         )
         if response.status_code != 200:
-            print("Failure", response.status_code, response.text)
-            return None
+            return f"Failure {response.text} ({response.status_code})"
 
         try:
             j = response.json()
-            result = j["choices"][0]["message"]["content"]
+            result = cast(str, j["choices"][0]["message"]["content"])
         except (KeyError, IndexError, json.decoder.JSONDecodeError):
-            print("Failure", response.status_code, response.text)
-            return None
+            return f"Failure {response.text} ({response.status_code})"
 
         session.extend([User(query), Assistant(result)])
         return result
 
-    async def aask(self, session, query, *, timeout=60):
+    async def aask(
+        self, session: Session, query: str, *, timeout: float = 60
+    ) -> AsyncGenerator[str, None]:
         full_prompt = self.make_full_prompt(session + [User(query)])
         new_content = []
         try:
@@ -140,9 +140,7 @@ class ChatGPT:
                     json={
                         "model": self.parameters.model,
                         "stream": True,
-                        "messages": full_prompt.to_dict()[  # pylint: disable=no-member
-                            "session"
-                        ],  # pylint: disable=no-member
+                        "messages": session_to_list(full_prompt),
                     },
                 ) as response:
                     if response.status_code == 200:
@@ -170,10 +168,10 @@ class ChatGPT:
         session.extend([User(query), Assistant("".join(new_content))])
 
     @classmethod
-    def get_key(cls):
+    def get_key(cls) -> str:
         return get_key("openai_api_key")
 
 
-def factory():
+def factory() -> Backend:
     """Uses the OpenAI chat completion API"""
     return ChatGPT()

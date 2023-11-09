@@ -5,13 +5,16 @@
 import asyncio
 import random
 from dataclasses import dataclass
+from typing import AsyncGenerator, Iterable, cast
 
-from lorem_text import lorem
+# lorem is not type annotated
+from lorem_text import lorem  # type: ignore
 
-from ..session import Assistant, User
+from ..core import Backend
+from ..session import Assistant, Session, User
 
 
-def ipartition(s, sep=" "):
+def ipartition(s: str, sep: str = " ") -> Iterable[tuple[str, str]]:
     rest = s
     while rest:
         first, opt_sep, rest = rest.partition(sep)
@@ -30,15 +33,19 @@ class Lorem:
         paragraph_hi: int = 5
         """Maximum response paragraph count (inclusive)"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.parameters = self.Parameters()
 
     system_message = (
         "(It doesn't matter what you ask, this backend will respond with lorem)"
     )
 
-    async def aask(self, session, query, *, max_query_size=5, timeout=60):
-        data = self.ask(session, query, max_query_size=max_query_size, timeout=timeout)
+    async def aask(
+        self,
+        session: Session,
+        query: str,
+    ) -> AsyncGenerator[str, None]:
+        data = self.ask(session, query)[-1]
         for word, opt_sep in ipartition(data):
             yield word + opt_sep
             await asyncio.sleep(
@@ -46,15 +53,22 @@ class Lorem:
             )
 
     def ask(
-        self, session, query, *, max_query_size=5, timeout=60
-    ):  # pylint: disable=unused-argument
-        new_content = lorem.paragraphs(
-            random.randint(self.parameters.paragraph_lo, self.parameters.paragraph_hi)
+        self,
+        session: Session,
+        query: str,
+    ) -> str:  # pylint: disable=unused-argument
+        new_content = cast(
+            str,
+            lorem.paragraphs(
+                random.randint(
+                    self.parameters.paragraph_lo, self.parameters.paragraph_hi
+                )
+            ),
         ).replace("\n", "\n\n")
         session.extend([User(query), Assistant("".join(new_content))])
-        return new_content
+        return session[-1].content
 
 
-def factory():
+def factory() -> Backend:
     """That just prints 'lorem' text. Useful for testing."""
     return Lorem()

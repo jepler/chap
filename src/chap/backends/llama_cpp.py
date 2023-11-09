@@ -2,16 +2,17 @@
 #
 # SPDX-License-Identifier: MIT
 
-import asyncio
 import json
 from dataclasses import dataclass
+from typing import AsyncGenerator
 
 import httpx
 
-from ..session import Assistant, Role, User
+from ..core import AutoAskMixin, Backend
+from ..session import Assistant, Role, Session, User
 
 
-class LlamaCpp:
+class LlamaCpp(AutoAskMixin):
     @dataclass
     class Parameters:
         url: str = "http://localhost:8080/completion"
@@ -22,14 +23,15 @@ class LlamaCpp:
         after_user: str = """ [/INST] """
         after_assistant: str = """ </s><s>[INST] """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super().__init__()
         self.parameters = self.Parameters()
 
     system_message = """\
 A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, and knows its own limits.
 """
 
-    def make_full_query(self, messages, max_query_size):
+    def make_full_query(self, messages: Session, max_query_size: int) -> str:
         del messages[1:-max_query_size]
         result = [self.parameters.start_prompt]
         for m in messages:
@@ -47,14 +49,21 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         return full_query
 
     async def aask(
-        self, session, query, *, max_query_size=5, timeout=180
-    ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+        self,
+        session: Session,
+        query: str,
+        *,
+        max_query_size: int = 5,
+        timeout: float = 180,
+    ) -> AsyncGenerator[
+        str, None
+    ]:  # pylint: disable=unused-argument,too-many-locals,too-many-branches
         params = {
             "prompt": self.make_full_query(session + [User(query)], max_query_size),
             "stream": True,
             "stop": ["</s>", "<s>", "[INST]"],
         }
-        new_content = []
+        new_content: list[str] = []
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream(
@@ -87,13 +96,7 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
 
         session.extend([User(query), Assistant("".join(new_content))])
 
-    def ask(self, session, query, *, max_query_size=5, timeout=60):
-        asyncio.run(
-            self.aask(session, query, max_query_size=max_query_size, timeout=timeout)
-        )
-        return session[-1].content
 
-
-def factory():
+def factory() -> Backend:
     """Uses the llama.cpp completion web API"""
     return LlamaCpp()

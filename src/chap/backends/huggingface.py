@@ -2,17 +2,18 @@
 #
 # SPDX-License-Identifier: MIT
 
-import asyncio
 import json
 from dataclasses import dataclass
+from typing import Any, AsyncGenerator
 
 import httpx
 
+from ..core import AutoAskMixin, Backend
 from ..key import get_key
-from ..session import Assistant, Role, User
+from ..session import Assistant, Role, Session, User
 
 
-class HuggingFace:
+class HuggingFace(AutoAskMixin):
     @dataclass
     class Parameters:
         url: str = "https://api-inference.huggingface.co"
@@ -24,14 +25,15 @@ class HuggingFace:
         after_assistant: str = """ </s><s>[INST] """
         stop_token_id = 2
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super().__init__()
         self.parameters = self.Parameters()
 
     system_message = """\
 A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, and knows its own limits.
 """
 
-    def make_full_query(self, messages, max_query_size):
+    def make_full_query(self, messages: Session, max_query_size: int) -> str:
         del messages[1:-max_query_size]
         result = [self.parameters.start_prompt]
         for m in messages:
@@ -48,7 +50,9 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         full_query = "".join(result)
         return full_query
 
-    async def chained_query(self, inputs, timeout):
+    async def chained_query(
+        self, inputs: Any, timeout: float
+    ) -> AsyncGenerator[str, None]:
         async with httpx.AsyncClient(timeout=timeout) as client:
             while inputs:
                 params = {
@@ -79,9 +83,16 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
                         return
 
     async def aask(
-        self, session, query, *, max_query_size=5, timeout=180
-    ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
-        new_content = []
+        self,
+        session: Session,
+        query: str,
+        *,
+        max_query_size: int = 5,
+        timeout: float = 180,
+    ) -> AsyncGenerator[
+        str, None
+    ]:  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+        new_content: list[str] = []
         inputs = self.make_full_query(session + [User(query)], max_query_size)
         try:
             async for content in self.chained_query(inputs, timeout=timeout):
@@ -101,17 +112,11 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
 
         session.extend([User(query), Assistant("".join(new_content))])
 
-    def ask(self, session, query, *, max_query_size=5, timeout=60):
-        asyncio.run(
-            self.aask(session, query, max_query_size=max_query_size, timeout=timeout)
-        )
-        return session[-1].content
-
     @classmethod
-    def get_key(cls):
+    def get_key(cls) -> str:
         return get_key("huggingface_api_token")
 
 
-def factory():
+def factory() -> Backend:
     """Uses the huggingface text-generation-interface web API"""
     return HuggingFace()

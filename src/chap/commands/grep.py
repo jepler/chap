@@ -18,7 +18,7 @@ from .render import to_markdown
 
 
 def list_files_matching_rx(
-    rx: re.Pattern, conversations_path: Optional[pathlib.Path] = None
+    rx: re.Pattern[str], conversations_path: Optional[pathlib.Path] = None
 ) -> Iterable[Tuple[pathlib.Path, Message]]:
     for conversation in (conversations_path or default_conversations_path).glob(
         "*.json"
@@ -39,7 +39,9 @@ def list_files_matching_rx(
 @click.option("--files-with-matches", "-l", is_flag=True)
 @click.option("--fixed-strings", "--literal", "-F", is_flag=True)
 @click.argument("pattern", nargs=1, required=True)
-def main(ignore_case, files_with_matches, fixed_strings, pattern):
+def main(
+    ignore_case: bool, files_with_matches: bool, fixed_strings: bool, pattern: str
+) -> None:
     """Search sessions for pattern"""
     console = rich.get_console()
     if fixed_strings:
@@ -47,7 +49,7 @@ def main(ignore_case, files_with_matches, fixed_strings, pattern):
 
     rx = re.compile(pattern, re.I if ignore_case else 0)
     last_file = None
-    for f, m in list_files_matching_rx(rx, ignore_case):
+    for f, m in list_files_matching_rx(rx, None):
         if f != last_file:
             if files_with_matches:
                 print(f)
