@@ -23,7 +23,7 @@ def parser_factory():
     return parser
 
 
-class Markdown(
+class ChapMarkdown(
     Markdown, can_focus=True, can_focus_children=False
 ):  # pylint: disable=function-redefined
     BINDINGS = [
@@ -35,7 +35,7 @@ class Markdown(
 
 
 def markdown_for_step(step):
-    return Markdown(
+    return ChapMarkdown(
         step.content.strip() or "…",
         classes="role_" + step.role,
         parser_factory=parser_factory,
@@ -179,13 +179,13 @@ class Tui(App):
 
     def action_yank(self):
         widget = self.focused
-        if isinstance(widget, Markdown):
+        if isinstance(widget, ChapMarkdown):
             content = widget._markdown  # pylint: disable=protected-access
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
     def action_toggle_history(self):
         widget = self.focused
-        if not isinstance(widget, Markdown):
+        if not isinstance(widget, ChapMarkdown):
             return
         children = self.container.children
         idx = children.index(widget)
@@ -217,7 +217,7 @@ class Tui(App):
 
     async def redraft_or_resubmit(self, resubmit):
         widget = self.focused
-        if not isinstance(widget, Markdown):
+        if not isinstance(widget, ChapMarkdown):
             return
         children = self.container.children
         idx = children.index(widget)
