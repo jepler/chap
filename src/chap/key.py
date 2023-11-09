@@ -15,7 +15,7 @@ _key_path_base = platformdirs.user_config_path("chap")
 
 
 @functools.cache
-def get_key(name, what="openai api key"):
+def get_key(name: str, what: str = "openai api key") -> str:
     key_path = _key_path_base / name
     if not key_path.exists():
         raise NoKeyAvailable(

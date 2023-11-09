@@ -2,19 +2,25 @@
 #
 # SPDX-License-Identifier: MIT
 
-import asyncio
 import json
 import uuid
+from dataclasses import dataclass
+from typing import AsyncGenerator
 
 import websockets
 
-from ..key import get_key
-from ..session import Assistant, Session, User
+from ..core import AutoAskMixin, Backend
+from ..session import Assistant, Role, Session, User
 
 
-class Textgen:
-    def __init__(self):
-        self.server = get_key("textgen_url", "textgen server URL")
+class Textgen(AutoAskMixin):
+    @dataclass
+    class Parameters:
+        server_hostname: str = "localhost"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.parameters = self.Parameters()
 
     system_message = """\
 A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, and knows its own limits.
@@ -23,9 +29,14 @@ USER: Hello, AI.
 
 AI: Hello! How can I assist you today?"""
 
-    async def aask(
-        self, session, query, *, max_query_size=5, timeout=60
-    ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+    async def aask(  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+        self,
+        session: Session,
+        query: str,
+        *,
+        max_query_size: int = 5,
+        timeout: float = 60,
+    ) -> AsyncGenerator[str, None]:
         params = {
             "max_new_tokens": 200,
             "do_sample": True,
@@ -44,20 +55,18 @@ AI: Hello! How can I assist you today?"""
         session_hash = str(uuid.uuid4())
 
         role_map = {
-            "user": "USER: ",
-            "assistant": "AI: ",
+            Role.USER: "USER: ",
+            Role.ASSISTANT: "AI: ",
         }
-        full_prompt = Session(session.session + [User(query)])
-        del full_prompt.session[1:-max_query_size]
+        full_prompt = session + [User(query)]
+        del full_prompt[1:-max_query_size]
         new_data = old_data = full_query = (
-            "\n".join(
-                f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt.session
-            )
+            "\n".join(f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt)
             + f"\n{role_map.get('assistant')}"
         )
         try:
             async with websockets.connect(  # pylint: disable=no-member
-                f"ws://{self.server}:7860/queue/join"
+                f"ws://{self.parameters.server_hostname}:7860/queue/join"
             ) as websocket:
                 while content := json.loads(await websocket.recv()):
                     if content["msg"] == "send_hash":
@@ -124,15 +133,9 @@ AI: Hello! How can I assist you today?"""
             yield content
 
         all_response = new_data[len(full_query) :]
-        session.session.extend([User(query), Assistant(all_response)])
-
-    def ask(self, session, query, *, max_query_size=5, timeout=60):
-        asyncio.run(
-            self.aask(session, query, max_query_size=max_query_size, timeout=timeout)
-        )
-        return session.session[-1].message
+        session.extend([User(query), Assistant(all_response)])
 
 
-def factory():
+def factory() -> Backend:
     """Uses the textgen completion API"""
     return Textgen()

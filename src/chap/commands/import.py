@@ -6,41 +6,44 @@ from __future__ import annotations
 
 import json
 import pathlib
+from typing import Any, Iterator, TextIO
 
 import click
 import rich
 
 from ..core import conversations_path, new_session_path
-from ..session import Message, Session
+from ..session import Message, Role, Session, new_session, session_to_file
 
 console = rich.get_console()
 
 
-def iter_sessions(name, content, session_in, node_id):
+def iter_sessions(
+    name: str, content: Any, session_in: Session, node_id: str
+) -> Iterator[tuple[str, Session]]:
     node = content["mapping"][node_id]
-    session = Session(session_in.session[:])
+    session = session_in[:]
 
     if "message" in node:
         role = node["message"]["author"]["role"]
         text_content = "".join(node["message"]["content"]["parts"])
-        session.session.append(Message(role=role, content=text_content))
+        session.append(Message(role=role, content=text_content))
 
     if children := node.get("children"):
         for c in children:
             yield from iter_sessions(name, content, session, c)
     else:
         title = content.get("title") or "Untitled"
-        session.session[0] = Message(
-            "system",
+        session[0] = Message(
+            Role.SYSTEM,
             f"# {title}\nChatGPT session imported from {name}, branch {node_id}.\n\n",
         )
         yield node_id, session
 
 
-def do_import(output_directory, f):
+def do_import(output_directory: pathlib.Path, f: TextIO) -> None:
     stem = pathlib.Path(f.name).stem
     content = json.load(f)
-    session = Session.new_session()
+    session = new_session()
 
     default_branch = content["current_node"]
     console.print(f"Importing [bold]{f.name}[nobold]")
@@ -52,8 +55,7 @@ def do_import(output_directory, f):
             session_filename = new_session_path(
                 output_directory / (f"{stem}_{branch}.json")
             )
-        with open(session_filename, "w", encoding="utf-8") as f_out:
-            f_out.write(session.to_json())  # pylint: disable=no-member
+        session_to_file(session, session_filename)
         console.print(f" -> {session_filename}")
 
 
@@ -67,7 +69,7 @@ def do_import(output_directory, f):
 @click.argument(
     "files", nargs=-1, required=True, type=click.File("r", encoding="utf-8")
 )
-def main(output_directory, files):
+def main(output_directory: pathlib.Path, files: list[TextIO]) -> None:
     """Import files from the ChatGPT webui
 
     This understands the format produced by

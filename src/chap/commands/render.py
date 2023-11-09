@@ -7,14 +7,15 @@ import rich
 from markdown_it import MarkdownIt
 from rich.markdown import Markdown
 
-from ..core import command_uses_existing_session
+from ..core import Obj, command_uses_existing_session
+from ..session import Message, Role
 
 
-def to_markdown(message):
+def to_markdown(message: Message) -> Markdown:
     role = message.role
-    if role == "user":
+    if role == Role.USER:
         style = "bold"
-    elif role == "system":
+    elif role == Role.SYSTEM:
         style = "italic"
     else:
         style = "none"
@@ -27,17 +28,18 @@ def to_markdown(message):
 
 @command_uses_existing_session
 @click.option("--no-system", is_flag=True)
-def main(obj, no_system):
+def main(obj: Obj, no_system: bool) -> None:
     """Print session with formatting"""
     session = obj.session
+    assert session is not None
 
     console = rich.get_console()
     first = True
-    for row in session.session:
+    for row in session:
         if not first:
             console.print()
         first = False
-        if no_system and row.role == "system":
+        if no_system and row.role == Role.SYSTEM:
             continue
         console.print(to_markdown(row))
 
