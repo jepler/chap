@@ -195,7 +195,7 @@ class Tui(App[None]):
         if idx == 0:
             return
 
-        while idx > 1 and not "role_user" in children[idx].classes:
+        while idx > 1 and not children[idx].has_class("role_user"):
             idx -= 1
 
         for m in children[idx : idx + 2]:
