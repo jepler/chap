@@ -21,6 +21,7 @@ class EncodingMeta:
     encoding: tiktoken.Encoding
     tokens_per_message: int
     tokens_per_name: int
+    tokens_overhead: int
 
     @functools.lru_cache()
     def encode(self, s: str) -> list[int]:
@@ -28,52 +29,38 @@ class EncodingMeta:
 
     def num_tokens_for_message(self, message: Message) -> int:
         # n.b. chap doesn't use message.name yet
-        return len(self.encode(message.role)) + len(self.encode(message.content))
+        return (
+            len(self.encode(message.role))
+            + len(self.encode(message.content))
+            + self.tokens_per_message
+        )
 
     def num_tokens_for_messages(self, messages: Session) -> int:
-        return sum(self.num_tokens_for_message(message) for message in messages) + 3
+        return (
+            sum(self.num_tokens_for_message(message) for message in messages)
+            + self.tokens_overhead
+        )
 
     @classmethod
     @functools.cache
     def from_model(cls, model: str) -> "EncodingMeta":
-        if model == "gpt-3.5-turbo":
-            warnings.warn(
-                "Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613."
-            )
-            model = "gpt-3.5-turbo-0613"
-        if model == "gpt-4":
-            warnings.warn(
-                "Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613."
-            )
-            model = "gpt-4-0613"
-
         try:
             encoding = tiktoken.encoding_for_model(model)
         except KeyError:
             warnings.warn("Warning: model not found. Using cl100k_base encoding.")
             encoding = tiktoken.get_encoding("cl100k_base")
 
-        if model in {
-            "gpt-3.5-turbo-0613",
-            "gpt-3.5-turbo-16k-0613",
-            "gpt-4-0314",
-            "gpt-4-32k-0314",
-            "gpt-4-0613",
-            "gpt-4-32k-0613",
-            "gpt-4-1106-preview",
-        }:
-            tokens_per_message = 3
-            tokens_per_name = 1
-        elif model == "gpt-3.5-turbo-0301":
+        tokens_per_message = 3
+        tokens_per_name = 1
+        tokens_overhead = 3
+
+        if model == "gpt-3.5-turbo-0301":
             tokens_per_message = (
                 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
             )
             tokens_per_name = -1  # if there's a name, the role is omitted
-        else:
-            raise NotImplementedError(
-                f"""EncodingMeta is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens."""
-            )
-        return cls(encoding, tokens_per_message, tokens_per_name)
+
+        return cls(encoding, tokens_per_message, tokens_per_name, tokens_overhead)
 
 
 class ChatGPT:
