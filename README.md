@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 ## System requirements
 
-Chap is developed on Linux with Python 3.11. Due to use of the `list[int]` style of type hints, it is known to not work on Python 3.8 and older. The target minimum Python version is 3.9 (debian oldstable).
+Chap is developed on Linux with Python 3.11. Due to use of the `X | Y` style of type hints, it is known to not work on Python 3.9 and older. The target minimum Python version is 3.11 (debian stable).
 
 ## Installation
 
