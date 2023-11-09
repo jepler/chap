@@ -197,7 +197,6 @@ class Tui(App[None]):
 
         while idx > 1 and not "role_user" in children[idx].classes:
             idx -= 1
-        widget = children[idx]
 
         for m in children[idx : idx + 2]:
             m.toggle_class("history_exclude")
@@ -231,7 +230,6 @@ class Tui(App[None]):
 
         while idx > 1 and not children[idx].has_class("role_user"):
             idx -= 1
-        widget = children[idx]
 
         # Save a copy of the discussion before this deletion
         session_to_file(self.session, new_session_path())
