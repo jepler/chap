@@ -16,7 +16,7 @@ import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 
 from . import backends, commands  # pylint: disable=no-name-in-module
-from .session import Session
+from .session import Message, System, session_from_file
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
@@ -76,8 +76,7 @@ def do_session_continue(ctx, param, value):
         raise click.BadParameter(
             param, "--continue-session, --last and --new-session are mutually exclusive"
         )
-    with open(value, "r", encoding="utf-8") as f:
-        ctx.obj.session = Session.from_json(f.read())  # pylint: disable=no-member
+    ctx.obj.session = session_from_file(value)
     ctx.obj.session_filename = value
 
 
@@ -96,7 +95,7 @@ def do_session_new(ctx, param, value):
         )
     session_filename = new_session_path(value)
     system_message = ctx.obj.system_message or ctx.obj.api.system_message
-    ctx.obj.session = Session.new_session(system_message)
+    ctx.obj.session = [System(system_message)]
     ctx.obj.session_filename = session_filename
 
 
@@ -250,7 +249,7 @@ def version_callback(ctx, param, value) -> None:  # pylint: disable=unused-argum
 class Obj:
     api: object = None
     system_message: object = None
-    session: Session | None = None
+    session: list[Message] | None = None
 
 
 class MyCLI(click.MultiCommand):

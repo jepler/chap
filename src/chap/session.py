@@ -2,12 +2,17 @@
 #
 # SPDX-License-Identifier: MIT
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass
 
-from dataclasses_json import dataclass_json
+
+# not an enum.Enum because these objects are not json-serializable, sigh
+class Role:  # pylint: disable=too-few-public-methods
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    USER = "user"
 
 
-@dataclass_json
 @dataclass
 class Message:
     """Represents one Message within a chap Session"""
@@ -17,27 +22,39 @@ class Message:
 
 
 def Assistant(content):
-    return Message("assistant", content)
+    return Message(Role.ASSISTANT, content)
 
 
 def System(content):
-    return Message("system", content)
+    return Message(Role.SYSTEM, content)
 
 
 def User(content):
-    return Message("user", content)
+    return Message(Role.USER, content)
 
 
-@dataclass_json
-@dataclass
-class Session:
-    """Represents a series of Messages"""
+def new_session(
+    system_message: str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language.",
+):
+    return [System(system_message)]
 
-    session: list[Message] = field(default_factory=list)
 
-    @classmethod
-    def new_session(
-        cls,
-        system_message: str = "You're named Chap (they/them). Chap strives to answer truthfully and frankly. You have opinions, preferences, and emotions, you can say when you don't know, and you prefer to speak in plain language.",
-    ):
-        return Session([System(system_message)])
+def session_to_json(session):
+    return json.dumps([asdict(message) for message in session])
+
+
+def session_from_json(data):
+    j = json.loads(data)
+    if isinstance(j, dict):
+        j = j["session"]
+    return [Message(**mapping) for mapping in j]
+
+
+def session_from_file(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return session_from_json(f.read())
+
+
+def session_to_file(session, path):
+    with open(path, "w", encoding="utf-8") as f:
+        return f.write(session_to_json(session))

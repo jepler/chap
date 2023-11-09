@@ -9,7 +9,7 @@ import uuid
 import websockets
 
 from ..key import get_key
-from ..session import Assistant, Session, User
+from ..session import Assistant, Role, User
 
 
 class Textgen:
@@ -44,15 +44,13 @@ AI: Hello! How can I assist you today?"""
         session_hash = str(uuid.uuid4())
 
         role_map = {
-            "user": "USER: ",
-            "assistant": "AI: ",
+            Role.USER: "USER: ",
+            Role.ASSISTANT: "AI: ",
         }
-        full_prompt = Session(session.session + [User(query)])
-        del full_prompt.session[1:-max_query_size]
+        full_prompt = session + [User(query)]
+        del full_prompt[1:-max_query_size]
         new_data = old_data = full_query = (
-            "\n".join(
-                f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt.session
-            )
+            "\n".join(f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt)
             + f"\n{role_map.get('assistant')}"
         )
         try:
@@ -124,13 +122,13 @@ AI: Hello! How can I assist you today?"""
             yield content
 
         all_response = new_data[len(full_query) :]
-        session.session.extend([User(query), Assistant(all_response)])
+        session.extend([User(query), Assistant(all_response)])
 
     def ask(self, session, query, *, max_query_size=5, timeout=60):
         asyncio.run(
             self.aask(session, query, max_query_size=max_query_size, timeout=timeout)
         )
-        return session.session[-1].message
+        return session[-1].content
 
 
 def factory():

@@ -9,6 +9,7 @@ import click
 import rich
 
 from ..core import command_uses_new_session
+from ..session import session_to_file
 
 bold = "\033[1m"
 nobold = "\033[m"
@@ -102,8 +103,7 @@ def main(obj, prompt, print_prompt):
 
     print(f"Saving session to {session_filename}", file=sys.stderr)
     if response is not None:
-        with open(session_filename, "w", encoding="utf-8") as f:
-            f.write(session.to_json())
+        session_to_file(session, session_filename)
 
 
 if __name__ == "__main__":

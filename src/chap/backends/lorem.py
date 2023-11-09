@@ -51,7 +51,7 @@ class Lorem:
         new_content = lorem.paragraphs(
             random.randint(self.parameters.paragraph_lo, self.parameters.paragraph_hi)
         ).replace("\n", "\n\n")
-        session.session.extend([User(query), Assistant("".join(new_content))])
+        session.extend([User(query), Assistant("".join(new_content))])
         return new_content
 
 

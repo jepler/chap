@@ -14,7 +14,7 @@ from textual.containers import Container, Horizontal, VerticalScroll
 from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
 
 from ..core import command_uses_new_session, get_api, new_session_path
-from ..session import Assistant, Session, User
+from ..session import Assistant, User, new_session, session_to_file
 
 
 def parser_factory():
@@ -57,7 +57,9 @@ class Tui(App):
     def __init__(self, api=None, session=None):
         super().__init__()
         self.api = api or get_api("lorem")
-        self.session = session or Session.new_session(self.api.system_message)
+        self.session = (
+            new_session(self.api.system_message) if session is None else session
+        )
 
     @property
     def spinner(self):
@@ -82,7 +84,7 @@ class Tui(App):
     def compose(self):
         yield Footer()
         yield VerticalScroll(
-            *[markdown_for_step(step) for step in self.session.session],
+            *[markdown_for_step(step) for step in self.session],
             # The pad container helps reduce flickering when rendering fresh
             # content and scrolling. (it's not clear why this makes a
             # difference and it'd be nice to be rid of the workaround)
@@ -122,13 +124,13 @@ class Tui(App):
             markdown.disabled = True
 
         # Construct a fake session with only select items
-        session = Session()
-        for si, wi in zip(self.session.session, self.container.children):
+        session = []
+        for si, wi in zip(self.session, self.container.children):
             if not wi.has_class("history_exclude"):
-                session.session.append(si)
+                session.append(si)
 
         message = Assistant("")
-        self.session.session.extend(
+        self.session.extend(
             [
                 User(query),
                 message,
@@ -158,7 +160,7 @@ class Tui(App):
             await asyncio.gather(render_fun(), get_token_fun())
         finally:
             self.input.value = ""
-            all_output = self.session.session[-1].content
+            all_output = self.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
             self.container.scroll_end()
@@ -227,13 +229,12 @@ class Tui(App):
         widget = children[idx]
 
         # Save a copy of the discussion before this deletion
-        with open(new_session_path(), "w", encoding="utf-8") as f:
-            f.write(self.session.to_json())
+        session_to_file(self.session, new_session_path())
 
-        query = self.session.session[idx].content
+        query = self.session[idx].content
         self.input.value = query
 
-        del self.session.session[idx:]
+        del self.session[idx:]
         for child in self.container.children[idx:-1]:
             await child.remove()
 
@@ -257,8 +258,7 @@ def main(obj):
 
     print(f"Saving session to {session_filename}", file=sys.stderr)
 
-    with open(session_filename, "w", encoding="utf-8") as f:
-        f.write(session.to_json())
+    session_to_file(session, session_filename)
 
 
 if __name__ == "__main__":

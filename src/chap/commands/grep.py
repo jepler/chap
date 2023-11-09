@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import pathlib
 import re
+import sys
 from typing import Iterable, Optional, Tuple
 
 import click
 import rich
 
 from ..core import conversations_path as default_conversations_path
-from ..session import Message, Session
+from ..session import Message, session_from_file
 from .render import to_markdown
 
 
@@ -22,11 +23,15 @@ def list_files_matching_rx(
     for conversation in (conversations_path or default_conversations_path).glob(
         "*.json"
     ):
-        with open(conversation, "r", encoding="utf-8") as f:
-            session = Session.from_json(f.read())  # pylint: disable=no-member
-            for message in session.session:
-                if isinstance(message.content, str) and rx.search(message.content):
-                    yield conversation, message
+        try:
+            session = session_from_file(conversation)  # pylint: disable=no-member
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(f"Failed to read {conversation}: {e}", file=sys.stderr)
+            continue
+
+        for message in session:
+            if isinstance(message.content, str) and rx.search(message.content):
+                yield conversation, message
 
 
 @click.command

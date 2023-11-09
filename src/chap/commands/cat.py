@@ -5,6 +5,7 @@
 import click
 
 from ..core import command_uses_existing_session
+from ..session import Role
 
 
 @command_uses_existing_session
@@ -14,13 +15,13 @@ def main(obj, no_system):
     session = obj.session
 
     first = True
-    for row in session.session:
+    for row in session:
         if not first:
             print()
         first = False
-        if row.role == "user":
+        if row.role == Role.USER:
             decoration = "**"
-        elif row.role == "system":
+        elif row.role == Role.SYSTEM:
             if no_system:
                 continue
             decoration = "_"

@@ -10,7 +10,7 @@ import httpx
 import tiktoken
 
 from ..key import get_key
-from ..session import Assistant, Session, User
+from ..session import Assistant, User
 
 
 @dataclass(frozen=True)
@@ -97,10 +97,10 @@ class ChatGPT:
             else:
                 break
         result.extend(reversed(parts))
-        return Session(result)
+        return result
 
     def ask(self, session, query, *, timeout=60):
-        full_prompt = self.make_full_prompt(session.session + [User(query)])
+        full_prompt = self.make_full_prompt(session + [User(query)])
         response = httpx.post(
             "https://api.openai.com/v1/chat/completions",
             json={
@@ -125,11 +125,11 @@ class ChatGPT:
             print("Failure", response.status_code, response.text)
             return None
 
-        session.session.extend([User(query), Assistant(result)])
+        session.extend([User(query), Assistant(result)])
         return result
 
     async def aask(self, session, query, *, timeout=60):
-        full_prompt = self.make_full_prompt(session.session + [User(query)])
+        full_prompt = self.make_full_prompt(session + [User(query)])
         new_content = []
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -167,7 +167,7 @@ class ChatGPT:
             new_content.append(content)
             yield content
 
-        session.session.extend([User(query), Assistant("".join(new_content))])
+        session.extend([User(query), Assistant("".join(new_content))])
 
     @classmethod
     def get_key(cls):

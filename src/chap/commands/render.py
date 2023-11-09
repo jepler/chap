@@ -8,13 +8,14 @@ from markdown_it import MarkdownIt
 from rich.markdown import Markdown
 
 from ..core import command_uses_existing_session
+from ..session import Role
 
 
 def to_markdown(message):
     role = message.role
-    if role == "user":
+    if role == Role.USER:
         style = "bold"
-    elif role == "system":
+    elif role == Role.SYSTEM:
         style = "italic"
     else:
         style = "none"
@@ -33,11 +34,11 @@ def main(obj, no_system):
 
     console = rich.get_console()
     first = True
-    for row in session.session:
+    for row in session:
         if not first:
             console.print()
         first = False
-        if no_system and row.role == "system":
+        if no_system and row.role == Role.SYSTEM:
             continue
         console.print(to_markdown(row))
 

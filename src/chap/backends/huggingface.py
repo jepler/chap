@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import httpx
 
 from ..key import get_key
-from ..session import Assistant, User
+from ..session import Assistant, Role, User
 
 
 class HuggingFace:
@@ -39,11 +39,11 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
             if not content:
                 continue
             result.append(content)
-            if m.role == "system":
+            if m.role == Role.SYSTEM:
                 result.append(self.parameters.after_system)
-            elif m.role == "assistant":
+            elif m.role == Role.ASSISTANT:
                 result.append(self.parameters.after_assistant)
-            elif m.role == "user":
+            elif m.role == Role.USER:
                 result.append(self.parameters.after_user)
         full_query = "".join(result)
         return full_query
@@ -82,7 +82,7 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         self, session, query, *, max_query_size=5, timeout=180
     ):  # pylint: disable=unused-argument,too-many-locals,too-many-branches
         new_content = []
-        inputs = self.make_full_query(session.session + [User(query)], max_query_size)
+        inputs = self.make_full_query(session + [User(query)], max_query_size)
         try:
             async for content in self.chained_query(inputs, timeout=timeout):
                 if not new_content:
@@ -99,13 +99,13 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
             new_content.append(content)
             yield content
 
-        session.session.extend([User(query), Assistant("".join(new_content))])
+        session.extend([User(query), Assistant("".join(new_content))])
 
     def ask(self, session, query, *, max_query_size=5, timeout=60):
         asyncio.run(
             self.aask(session, query, max_query_size=max_query_size, timeout=timeout)
         )
-        return session.session[-1].message
+        return session[-1].content
 
     @classmethod
     def get_key(cls):

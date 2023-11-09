@@ -37,5 +37,5 @@ repos:
   rev: v2.17.0
   hooks:
   - id: pylint
-    additional_dependencies: [click,dataclasses_json,httpx,lorem-text,simple-parsing,'textual>=0.18.0',tiktoken,websockets]
+    additional_dependencies: [click,httpx,lorem-text,simple-parsing,'textual>=0.18.0',tiktoken,websockets]
     args: ['--source-roots', 'src']
