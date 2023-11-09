@@ -264,6 +264,7 @@ def version_callback(  # pylint: disable=unused-argument
         return
 
     git_dir = pathlib.Path(__file__).parent.parent.parent / ".git"
+    version: str
     if git_dir.exists():
         version = subprocess.check_output(
             ["git", f"--git-dir={git_dir}", "describe", "--tags", "--dirty"],
@@ -271,7 +272,8 @@ def version_callback(  # pylint: disable=unused-argument
         )
     else:
         try:
-            from .__version__ import __version__ as version
+            # __version__ file is not generated yet during CI
+            from .__version__ import __version__ as version  # type: ignore
         except ImportError:
             version = "unknown"
     prog_name = ctx.find_root().info_name
