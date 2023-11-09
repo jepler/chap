@@ -25,10 +25,10 @@ def ipartition(s: str, sep: str) -> Iterable[tuple[str, str]]:
 
 class Printable(Protocol):
     def raw(self, s: str) -> None:
-        ...
+        """Print a raw escape code"""
 
     def add(self, s: str) -> None:
-        ...
+        """Add text to the output"""
 
 
 class DumbPrinter:
