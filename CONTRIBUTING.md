@@ -33,7 +33,7 @@ This project uses [mypy](https://www.mypy-lang.org/) for type-checking.
 If your system has `make`, you can type-check the project with: `make`.
 Otherwise, you need to perform several setup steps:
  * create a virtual environment at "venv": `python -mvenv venv`
- * install dependencies in the virtual environment: `venv/bin/pip install -r requirements.txt mypy`
+ * install dependencies in the virtual environment: `venv/bin/pip install -r requirements.txt 'mypy!=1.7.0'`
 
 Then, type check with: `venv/bin/mypy`
 
