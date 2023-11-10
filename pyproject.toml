@@ -44,3 +44,9 @@ readme = {file = ["README.md"], content-type="text/markdown"}
 dependencies = {file = "requirements.txt"}
 [tool.setuptools.package-data]
 "pkgname" = ["py.typed"]
+[tool.mypy]
+mypy_path = ["src"]
+warn_unused_ignores = false
+warn_redundant_casts = true
+strict = true
+packages = ["chap"]
