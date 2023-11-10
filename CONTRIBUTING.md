@@ -12,7 +12,7 @@ There's no particular roadmap for chap, it was created to scratch the original d
 If you're looking for a way to contribute, check out the open issues.
 If you want to discuss a possible enhancement before beginning work, opening a fresh issue is a good way to start a dialog about your idea.
 
-## Code style & linting
+## Code style & linting with pre-commit
 
 This project uses [pre-commit](https://pre-commit.com/) to maintain the code's style and perform some quality checks.
 First, install pre-commit: `pip install pre-commit`.
@@ -26,3 +26,16 @@ It is acceptable to use hints like `#  pylint: ignore=diagnostic-kind` when it's
 
 When you create a pull request, `pre-commit run --all` is run in a standardized environment, which occasionally catches things that were not seen locally.
 That green checkmark in github actions is the final arbiter of whether the code is pre-commit clean.
+
+## Type checking with mypy
+
+This project uses [mypy](https://www.mypy-lang.org/) for type-checking.
+If your system has `make`, you can type-check the project with: `make`.
+Otherwise, you need to perform several setup steps:
+ * create a virtual environment at "venv": `python -mvenv venv`
+ * install dependencies in the virtual environment: `venv/bin/pip install -r requirements.txt mypy`
+
+Then, type check with: `venv/bin/mypy`
+
+When you create a pull request, mypy is run in a standardized environment, which occasionally catches things that were not seen locally.
+That green checkmark in github actions is the final arbiter of whether the code is mypy clean.
