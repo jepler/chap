@@ -87,11 +87,11 @@ def configure_api_from_environment(api_name: str, api: Backend) -> None:
 
 def get_api(name: str = "openai_chatgpt") -> Backend:
     name = name.replace("-", "_")
-    result = cast(
+    backend = cast(
         Backend, importlib.import_module(f"{__package__}.backends.{name}").factory()
     )
-    configure_api_from_environment(name, result)
-    return result
+    configure_api_from_environment(name, backend)
+    return backend
 
 
 def do_session_continue(
