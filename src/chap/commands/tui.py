@@ -5,17 +5,36 @@
 import asyncio
 import subprocess
 import sys
-from typing import cast
+from typing import Any, cast
 
 from markdown_it import MarkdownIt
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
+from textual.widgets import Button, Footer, LoadingIndicator, Markdown, TextArea
 
 from ..core import Backend, Obj, command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Message, Session, User, new_session, session_to_file
+
+
+class SubmittableTextArea(TextArea):
+    BINDINGS = [
+        Binding("f9", "submit", "Submit", show=True),
+        Binding("tab", "focus_next", show=False, priority=True),  # no inserting tabs
+    ]
+
+    def on_text_area_changed(  # pylint: disable=unused-argument
+        self, event: Any = None
+    ) -> None:
+        height = self.document.get_size(self.indent_width)[1]
+        max_height = max(3, self.parent.container_size.height - 6)
+        if height >= max_height:
+            self.styles.height = max_height
+        elif height <= 3:
+            self.styles.height = 3
+        else:
+            self.styles.height = height
 
 
 def parser_factory() -> MarkdownIt:
@@ -73,8 +92,8 @@ class Tui(App[None]):
         return cast(VerticalScroll, self.query_one("#wait"))
 
     @property
-    def input(self) -> Input:
-        return self.query_one(Input)
+    def input(self) -> TextArea:
+        return self.query_one(TextArea)
 
     @property
     def cancel_button(self) -> CancelButton:
@@ -94,7 +113,9 @@ class Tui(App[None]):
             Container(id="pad"),
             id="content",
         )
-        yield Input(placeholder="Prompt")
+        s = SubmittableTextArea(language="markdown")
+        s.show_line_numbers = False
+        yield s
         with Horizontal(id="wait"):
             yield LoadingIndicator()
             yield CancelButton(label="❌ Stop Generation", id="cancel", disabled=True)
@@ -103,8 +124,8 @@ class Tui(App[None]):
         self.container.scroll_end(animate=False)
         self.input.focus()
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
-        self.get_completion(event.value)
+    async def action_submit(self) -> None:
+        self.get_completion(self.input.text)
 
     @work(exclusive=True)
     async def get_completion(self, query: str) -> None:
@@ -162,7 +183,7 @@ class Tui(App[None]):
         try:
             await asyncio.gather(render_fun(), get_token_fun())
         finally:
-            self.input.value = ""
+            self.input.clear()
             all_output = self.session[-1].content
             output.update(all_output)
             output._markdown = all_output  # pylint: disable=protected-access
@@ -235,15 +256,16 @@ class Tui(App[None]):
         session_to_file(self.session, new_session_path())
 
         query = self.session[idx].content
-        self.input.value = query
+        self.input.load_text(query)
 
         del self.session[idx:]
         for child in self.container.children[idx:-1]:
             await child.remove()
 
         self.input.focus()
+        self.input.on_text_area_changed()
         if resubmit:
-            await self.input.action_submit()
+            await self.action_submit()
 
 
 @command_uses_new_session

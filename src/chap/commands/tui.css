@@ -54,3 +54,5 @@ Input {
 Markdown {
     margin: 0 1 0 0;
 }
+
+SubmittableTextArea { height: 3 }
