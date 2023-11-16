@@ -24,18 +24,6 @@ class SubmittableTextArea(TextArea):
         Binding("tab", "focus_next", show=False, priority=True),  # no inserting tabs
     ]
 
-    def on_text_area_changed(  # pylint: disable=unused-argument
-        self, event: Any = None
-    ) -> None:
-        height = self.document.get_size(self.indent_width)[1]
-        max_height = max(3, self.parent.container_size.height - 6)
-        if height >= max_height:
-            self.styles.height = max_height
-        elif height <= 3:
-            self.styles.height = 3
-        else:
-            self.styles.height = height
-
 
 def parser_factory() -> MarkdownIt:
     parser = MarkdownIt()
@@ -92,8 +80,8 @@ class Tui(App[None]):
         return cast(VerticalScroll, self.query_one("#wait"))
 
     @property
-    def input(self) -> TextArea:
-        return self.query_one(TextArea)
+    def input(self) -> SubmittableTextArea:
+        return self.query_one(SubmittableTextArea)
 
     @property
     def cancel_button(self) -> CancelButton:
@@ -263,9 +251,21 @@ class Tui(App[None]):
             await child.remove()
 
         self.input.focus()
-        self.input.on_text_area_changed()
+        self.on_text_area_changed()
         if resubmit:
             await self.action_submit()
+
+    def on_text_area_changed(  # pylint: disable=unused-argument
+        self, event: Any = None
+    ) -> None:
+        height = self.input.document.get_size(self.input.indent_width)[1]
+        max_height = max(3, self.size.height - 6)
+        if height >= max_height:
+            self.input.styles.height = max_height
+        elif height <= 3:
+            self.input.styles.height = 3
+        else:
+            self.input.styles.height = height
 
 
 @command_uses_new_session
