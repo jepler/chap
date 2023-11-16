@@ -45,7 +45,7 @@ class Lorem:
         session: Session,
         query: str,
     ) -> AsyncGenerator[str, None]:
-        data = self.ask(session, query)[-1]
+        data = self.ask(session, query)
         for word, opt_sep in ipartition(data):
             yield word + opt_sep
             await asyncio.sleep(
