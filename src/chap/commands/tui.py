@@ -7,6 +7,7 @@ import subprocess
 import sys
 from typing import Any, Optional, cast
 
+import click
 from markdown_it import MarkdownIt
 from textual import work
 from textual.app import App, ComposeResult
@@ -66,7 +67,7 @@ class Tui(App[None]):
         self, api: Optional[Backend] = None, session: Optional[Session] = None
     ) -> None:
         super().__init__()
-        self.api = api or get_api("lorem")
+        self.api = api or get_api(click.Context(click.Command("chap tui")), "lorem")
         self.session = (
             new_session(self.api.system_message) if session is None else session
         )
