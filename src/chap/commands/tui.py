@@ -5,7 +5,7 @@
 import asyncio
 import subprocess
 import sys
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from markdown_it import MarkdownIt
 from textual import work
@@ -63,7 +63,7 @@ class Tui(App[None]):
     ]
 
     def __init__(
-        self, api: Backend | None = None, session: Session | None = None
+        self, api: Optional[Backend] = None, session: Optional[Session] = None
     ) -> None:
         super().__init__()
         self.api = api or get_api("lorem")

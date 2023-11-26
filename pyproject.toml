@@ -20,13 +20,14 @@ name="chap"
 authors = [{name = "Jeff Epler", email = "jepler@gmail.com"}]
 description = "Interact with the OpenAI ChatGPT API (and other text generators)"
 dynamic = ["readme","version","dependencies"]
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 keywords = ["llm", "tui", "chatgpt"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import pathlib
 from dataclasses import asdict, dataclass
-from typing import cast
+from typing import Union, cast
 
 from typing_extensions import TypedDict
 
@@ -65,11 +65,11 @@ def session_from_json(data: str) -> Session:
     return [Message(**mapping) for mapping in j]
 
 
-def session_from_file(path: pathlib.Path | str) -> Session:
+def session_from_file(path: Union[pathlib.Path, str]) -> Session:
     with open(path, "r", encoding="utf-8") as f:
         return session_from_json(f.read())
 
 
-def session_to_file(session: Session, path: pathlib.Path | str) -> None:
+def session_to_file(session: Session, path: Union[pathlib.Path, str]) -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write(session_to_json(session))

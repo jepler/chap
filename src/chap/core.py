@@ -11,8 +11,7 @@ import pathlib
 import pkgutil
 import subprocess
 from dataclasses import MISSING, dataclass, fields
-from types import UnionType
-from typing import Any, AsyncGenerator, Callable, cast
+from typing import Any, AsyncGenerator, Callable, Optional, Union, cast
 
 import click
 import platformdirs
@@ -21,6 +20,9 @@ from typing_extensions import Protocol
 
 from . import backends, commands  # pylint: disable=no-name-in-module
 from .session import Message, Session, System, session_from_file
+
+# 3.9 compatible version of `from types import UnionType`
+UnionType = type(Union[int, list])
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
@@ -54,14 +56,14 @@ class AutoAskMixin:  # pylint: disable=too-few-public-methods
         return "".join(tokens)
 
 
-def last_session_path() -> pathlib.Path | None:
+def last_session_path() -> Optional[pathlib.Path]:
     result = max(
         conversations_path.glob("*.json"), key=lambda p: p.stat().st_mtime, default=None
     )
     return result
 
 
-def new_session_path(opt_path: pathlib.Path | None = None) -> pathlib.Path:
+def new_session_path(opt_path: Optional[pathlib.Path] = None) -> pathlib.Path:
     return opt_path or conversations_path / (
         datetime.datetime.now().isoformat().replace(":", "_") + ".json"
     )
@@ -95,7 +97,7 @@ def get_api(name: str = "openai_chatgpt") -> Backend:
 
 
 def do_session_continue(
-    ctx: click.Context, param: click.Parameter, value: pathlib.Path | None
+    ctx: click.Context, param: click.Parameter, value: Optional[pathlib.Path]
 ) -> None:
     if value is None:
         return
@@ -293,18 +295,18 @@ def version_callback(  # pylint: disable=unused-argument
 
 @dataclass
 class Obj:
-    api: Backend | None = None
-    system_message: str | None = None
-    session: list[Message] | None = None
-    session_filename: pathlib.Path | None = None
+    api: Optional[Backend] = None
+    system_message: Optional[str] = None
+    session: Optional[list[Message]] = None
+    session_filename: Optional[pathlib.Path] = None
 
 
 class MyCLI(click.MultiCommand):
     def make_context(
         self,
-        info_name: str | None,
+        info_name: Optional[str],
         args: list[str],
-        parent: click.Context | None = None,
+        parent: Optional[click.Context] = None,
         **extra: Any,
     ) -> click.Context:
         result = super().make_context(info_name, args, parent, obj=Obj(), **extra)
