@@ -10,13 +10,21 @@ from typing import Any, Optional, cast
 import click
 from markdown_it import MarkdownIt
 from textual import work
+from textual._ansi_sequences import ANSI_SEQUENCES_KEYS
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
+from textual.keys import Keys
 from textual.widgets import Button, Footer, LoadingIndicator, Markdown, TextArea
 
 from ..core import Backend, Obj, command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Message, Session, User, new_session, session_to_file
+
+# Monkeypatch alt+enter as meaning "F9", WFM
+# ignore typing here because ANSI_SEQUENCES_KEYS is a Mapping[] which is read-only as
+# far as mypy is concerned.
+ANSI_SEQUENCES_KEYS["\x1b\r"] = (Keys.F9,)  # type: ignore
+ANSI_SEQUENCES_KEYS["\x1b\n"] = (Keys.F9,)  # type: ignore
 
 
 class SubmittableTextArea(TextArea):
