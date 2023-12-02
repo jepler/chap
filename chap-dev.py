@@ -14,7 +14,6 @@ src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
 if __name__ == "__main__":
-    # pylint: disable=import-error,no-name-in-module
     from chap.core import main
 
     main()
