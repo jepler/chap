@@ -6,10 +6,6 @@ default_language_version:
   python: python3
 
 repos:
-- repo: https://github.com/psf/black
-  rev: 23.1.0
-  hooks:
-  - id: black
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
@@ -27,15 +23,12 @@ repos:
   rev: v1.1.2
   hooks:
   - id: reuse
-- repo: https://github.com/pycqa/isort
-  rev: 5.12.0
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.1.6
   hooks:
-    - id: isort
-      name: isort (python)
-      args: ['--profile', 'black']
-- repo: https://github.com/pycqa/pylint
-  rev: v2.17.0
-  hooks:
-  - id: pylint
-    additional_dependencies: [click,httpx,lorem-text,simple-parsing,'textual>=0.18.0',tiktoken,websockets]
-    args: ['--source-roots', 'src']
+    # Run the linter.
+    - id: ruff
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format

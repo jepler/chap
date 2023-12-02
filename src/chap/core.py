@@ -123,9 +123,7 @@ def do_session_continue(
     ctx.obj.session_filename = value
 
 
-def do_session_last(
-    ctx: click.Context, param: click.Parameter, value: bool
-) -> None:  # pylint: disable=unused-argument
+def do_session_last(ctx: click.Context, param: click.Parameter, value: bool) -> None:  # pylint: disable=unused-argument
     if not value:
         return
     do_session_continue(ctx, param, last_session_path())

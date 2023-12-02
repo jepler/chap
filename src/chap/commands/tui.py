@@ -40,9 +40,7 @@ def parser_factory() -> MarkdownIt:
     return parser
 
 
-class ChapMarkdown(
-    Markdown, can_focus=True, can_focus_children=False
-):  # pylint: disable=function-redefined
+class ChapMarkdown(Markdown, can_focus=True, can_focus_children=False):  # pylint: disable=function-redefined
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
