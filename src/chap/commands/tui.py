@@ -40,7 +40,7 @@ def parser_factory() -> MarkdownIt:
     return parser
 
 
-class ChapMarkdown(Markdown, can_focus=True, can_focus_children=False):  # pylint: disable=function-redefined
+class ChapMarkdown(Markdown, can_focus=True, can_focus_children=False):
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
@@ -181,7 +181,7 @@ class Tui(App[None]):
             self.input.clear()
             all_output = self.session[-1].content
             output.update(all_output)
-            output._markdown = all_output  # pylint: disable=protected-access
+            output._markdown = all_output
             self.container.scroll_end()
 
             for markdown in self.container.children:
@@ -199,7 +199,7 @@ class Tui(App[None]):
     def action_yank(self) -> None:
         widget = self.focused
         if isinstance(widget, ChapMarkdown):
-            content = widget._markdown or ""  # pylint: disable=protected-access
+            content = widget._markdown or ""
             subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
 
     def action_toggle_history(self) -> None:
@@ -220,9 +220,7 @@ class Tui(App[None]):
     async def action_stop_generating(self) -> None:
         self.workers.cancel_all()
 
-    async def on_button_pressed(  # pylint: disable=unused-argument
-        self, event: Button.Pressed
-    ) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         self.workers.cancel_all()
 
     async def action_quit(self) -> None:
@@ -262,9 +260,7 @@ class Tui(App[None]):
         if resubmit:
             await self.action_submit()
 
-    def on_text_area_changed(  # pylint: disable=unused-argument
-        self, event: Any = None
-    ) -> None:
+    def on_text_area_changed(self, event: Any = None) -> None:
         height = self.input.document.get_size(self.input.indent_width)[1]
         max_height = max(3, self.size.height - 6)
         if height >= max_height:
@@ -297,4 +293,4 @@ def main(obj: Obj) -> None:
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2023 Jeff Epler <jepler@gmail.com>
 #
 # SPDX-License-Identifier: MIT
-# pylint: disable=import-outside-toplevel
+
 
 import asyncio
 import datetime
@@ -18,7 +18,7 @@ import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 from typing_extensions import Protocol
 
-from . import backends, commands  # pylint: disable=no-name-in-module
+from . import backends, commands
 from .session import Message, Session, System, session_from_file
 
 # 3.9 compatible version of `from types import UnionType`
@@ -28,7 +28,7 @@ conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
 
 
-class ABackend(Protocol):  # pylint: disable=too-few-public-methods
+class ABackend(Protocol):
     def aask(self, session: Session, query: str) -> AsyncGenerator[str, None]:
         """Make a query, updating the session with the query and response, returning the query token by token"""
 
@@ -41,7 +41,7 @@ class Backend(ABackend, Protocol):
         """Make a query, updating the session with the query and response, returning the query"""
 
 
-class AutoAskMixin:  # pylint: disable=too-few-public-methods
+class AutoAskMixin:
     """Mixin class for backends implementing aask"""
 
     def ask(self, session: Session, query: str) -> str:
@@ -123,7 +123,7 @@ def do_session_continue(
     ctx.obj.session_filename = value
 
 
-def do_session_last(ctx: click.Context, param: click.Parameter, value: bool) -> None:  # pylint: disable=unused-argument
+def do_session_last(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value:
         return
     do_session_continue(ctx, param, last_session_path())
@@ -151,18 +151,14 @@ def colonstr(arg: str) -> tuple[str, str]:
     return cast(tuple[str, str], tuple(arg.split(":", 1)))
 
 
-def set_system_message(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: str
-) -> None:
+def set_system_message(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value and value.startswith("@"):
         with open(value[1:], "r", encoding="utf-8") as f:
             value = f.read().rstrip()
     ctx.obj.system_message = value
 
 
-def set_backend(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: str
-) -> None:
+def set_backend(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value == "list":
         formatter = ctx.make_formatter()
         format_backend_list(formatter)
@@ -193,7 +189,7 @@ def format_backend_help(api: Backend, formatter: click.HelpFormatter) -> None:
         formatter.write_dl(rows)
 
 
-def set_backend_option(  # pylint: disable=unused-argument
+def set_backend_option(
     ctx: click.Context, param: click.Parameter, opts: list[tuple[str, str]]
 ) -> None:
     api = ctx.obj.api
@@ -269,9 +265,7 @@ def command_uses_new_session(f_in: click.decorators.FC) -> click.Command:
     return click.command()(f)
 
 
-def version_callback(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: None
-) -> None:
+def version_callback(ctx: click.Context, param: click.Parameter, value: None) -> None:
     if not value or ctx.resilient_parsing:
         return
 

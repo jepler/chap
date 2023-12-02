@@ -13,7 +13,7 @@ from typing_extensions import TypedDict
 
 
 # not an enum.Enum because these objects are not json-serializable, sigh
-class Role:  # pylint: disable=too-few-public-methods
+class Role:
     ASSISTANT = "assistant"
     SYSTEM = "system"
     USER = "user"

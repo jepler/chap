@@ -56,7 +56,7 @@ class Lorem:
         self,
         session: Session,
         query: str,
-    ) -> str:  # pylint: disable=unused-argument
+    ) -> str:
         new_content = cast(
             str,
             lorem.paragraphs(

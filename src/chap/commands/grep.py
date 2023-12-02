@@ -24,8 +24,8 @@ def list_files_matching_rx(
         "*.json"
     ):
         try:
-            session = session_from_file(conversation)  # pylint: disable=no-member
-        except Exception as e:  # pylint: disable=broad-exception-caught
+            session = session_from_file(conversation)
+        except Exception as e:
             print(f"Failed to read {conversation}: {e}", file=sys.stderr)
             continue
 
@@ -67,4 +67,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()

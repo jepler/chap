@@ -29,7 +29,7 @@ USER: Hello, AI.
 
 AI: Hello! How can I assist you today?"""
 
-    async def aask(  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+    async def aask(
         self,
         session: Session,
         query: str,
@@ -64,7 +64,7 @@ AI: Hello! How can I assist you today?"""
             f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt
         ) + f"\n{role_map.get('assistant')}"
         try:
-            async with websockets.connect(  # pylint: disable=no-member
+            async with websockets.connect(
                 f"ws://{self.parameters.server_hostname}:7860/queue/join"
             ) as websocket:
                 while content := json.loads(await websocket.recv()):
@@ -126,7 +126,7 @@ AI: Hello! How can I assist you today?"""
                         #  stop generation by closing the websocket here
                         if content["msg"] == "process_completed":
                             break
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:
             content = f"\nException: {e!r}"
             new_data += content
             yield content
