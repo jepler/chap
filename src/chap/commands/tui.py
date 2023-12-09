@@ -272,7 +272,8 @@ class Tui(App[None]):
 
 
 @command_uses_new_session
-def main(obj: Obj) -> None:
+@click.option("--replace-system-prompt/--no-replace-system-prompt", default=False)
+def main(obj: Obj, replace_system_prompt) -> None:
     """Start interactive terminal user interface session"""
     api = obj.api
     assert api is not None
@@ -280,6 +281,9 @@ def main(obj: Obj) -> None:
     assert session is not None
     session_filename = obj.session_filename
     assert session_filename is not None
+
+    if replace_system_prompt:
+        session[0].content = obj.system_message or api.system_message
 
     tui = Tui(api, session)
     tui.run()
