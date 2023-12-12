@@ -282,7 +282,7 @@ class Tui(App[None]):
 
 @command_uses_new_session
 @click.option("--replace-system-prompt/--no-replace-system-prompt", default=False)
-def main(obj: Obj, replace_system_prompt) -> None:
+def main(obj: Obj, replace_system_prompt: bool) -> None:
     """Start interactive terminal user interface session"""
     api = obj.api
     assert api is not None
