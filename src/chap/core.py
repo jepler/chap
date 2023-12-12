@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2023 Jeff Epler <jepler@gmail.com>
 #
 # SPDX-License-Identifier: MIT
-# pylint: disable=import-outside-toplevel
+
 
 import asyncio
 import datetime
@@ -10,23 +10,38 @@ import os
 import pathlib
 import pkgutil
 import subprocess
-from dataclasses import MISSING, dataclass, fields
-from types import UnionType
-from typing import Any, AsyncGenerator, Callable, cast
+from dataclasses import MISSING, Field, dataclass, fields
+from typing import (
+    Any,
+    AsyncGenerator,
+    Callable,
+    Optional,
+    Union,
+    cast,
+    get_origin,
+    get_args,
+)
+import sys
 
 import click
 import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 from typing_extensions import Protocol
 
-from . import backends, commands  # pylint: disable=no-name-in-module
+from . import backends, commands
 from .session import Message, Session, System, session_from_file
+
+UnionType: type
+if sys.version_info >= (3, 10):
+    from types import UnionType
+else:
+    UnionType = type(Union[int, float])
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
 
 
-class ABackend(Protocol):  # pylint: disable=too-few-public-methods
+class ABackend(Protocol):
     def aask(self, session: Session, query: str) -> AsyncGenerator[str, None]:
         """Make a query, updating the session with the query and response, returning the query token by token"""
 
@@ -39,7 +54,7 @@ class Backend(ABackend, Protocol):
         """Make a query, updating the session with the query and response, returning the query"""
 
 
-class AutoAskMixin:  # pylint: disable=too-few-public-methods
+class AutoAskMixin:
     """Mixin class for backends implementing aask"""
 
     def ask(self, session: Session, query: str) -> str:
@@ -54,20 +69,50 @@ class AutoAskMixin:  # pylint: disable=too-few-public-methods
         return "".join(tokens)
 
 
-def last_session_path() -> pathlib.Path | None:
+def last_session_path() -> Optional[pathlib.Path]:
     result = max(
         conversations_path.glob("*.json"), key=lambda p: p.stat().st_mtime, default=None
     )
     return result
 
 
-def new_session_path(opt_path: pathlib.Path | None = None) -> pathlib.Path:
+def new_session_path(opt_path: Optional[pathlib.Path] = None) -> pathlib.Path:
     return opt_path or conversations_path / (
         datetime.datetime.now().isoformat().replace(":", "_") + ".json"
     )
 
 
-def configure_api_from_environment(api_name: str, api: Backend) -> None:
+def get_field_type(field: Field[Any]) -> Any:
+    field_type = field.type
+    if isinstance(field_type, str):
+        raise RuntimeError(
+            "parameters dataclass may not use 'from __future__ import annotations"
+        )
+    origin = get_origin(field_type)
+    if origin in (Union, UnionType):
+        for arg in get_args(field_type):
+            if arg is not None:
+                return arg
+    return field_type
+
+
+def convert_str_to_field(ctx: click.Context, field: Field[Any], value: str) -> Any:
+    field_type = get_field_type(field)
+    try:
+        if field_type is bool:
+            tv = click.types.BoolParamType().convert(value, None, ctx)
+        else:
+            tv = field_type(value)
+        return tv
+    except ValueError as e:
+        raise click.BadParameter(
+            f"Invalid value for {field.name} with value {value}: {e}"
+        ) from e
+
+
+def configure_api_from_environment(
+    ctx: click.Context, api_name: str, api: Backend
+) -> None:
     if not hasattr(api, "parameters"):
         return
 
@@ -76,26 +121,21 @@ def configure_api_from_environment(api_name: str, api: Backend) -> None:
         value = os.environ.get(envvar)
         if value is None:
             continue
-        try:
-            tv = field.type(value)
-        except ValueError as e:
-            raise click.BadParameter(
-                f"Invalid value for {field.name} with value {value}: {e}"
-            ) from e
+        tv = convert_str_to_field(ctx, field, value)
         setattr(api.parameters, field.name, tv)
 
 
-def get_api(name: str = "openai_chatgpt") -> Backend:
+def get_api(ctx: click.Context, name: str = "openai_chatgpt") -> Backend:
     name = name.replace("-", "_")
-    result = cast(
+    backend = cast(
         Backend, importlib.import_module(f"{__package__}.backends.{name}").factory()
     )
-    configure_api_from_environment(name, result)
-    return result
+    configure_api_from_environment(ctx, name, backend)
+    return backend
 
 
 def do_session_continue(
-    ctx: click.Context, param: click.Parameter, value: pathlib.Path | None
+    ctx: click.Context, param: click.Parameter, value: Optional[pathlib.Path]
 ) -> None:
     if value is None:
         return
@@ -108,9 +148,7 @@ def do_session_continue(
     ctx.obj.session_filename = value
 
 
-def do_session_last(
-    ctx: click.Context, param: click.Parameter, value: bool
-) -> None:  # pylint: disable=unused-argument
+def do_session_last(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value:
         return
     do_session_continue(ctx, param, last_session_path())
@@ -138,18 +176,14 @@ def colonstr(arg: str) -> tuple[str, str]:
     return cast(tuple[str, str], tuple(arg.split(":", 1)))
 
 
-def set_system_message(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: str
-) -> None:
+def set_system_message(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value and value.startswith("@"):
         with open(value[1:], "r", encoding="utf-8") as f:
             value = f.read().rstrip()
     ctx.obj.system_message = value
 
 
-def set_backend(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: str
-) -> None:
+def set_backend(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value == "list":
         formatter = ctx.make_formatter()
         format_backend_list(formatter)
@@ -157,7 +191,7 @@ def set_backend(  # pylint: disable=unused-argument
         ctx.exit()
 
     try:
-        ctx.obj.api = get_api(value)
+        ctx.obj.api = get_api(ctx, value)
     except ModuleNotFoundError as e:
         raise click.BadParameter(str(e))
 
@@ -172,15 +206,13 @@ def format_backend_help(api: Backend, formatter: click.HelpFormatter) -> None:
             if doc:
                 doc += " "
             doc += f"(Default: {default!r})"
-            f_type = f.type
-            if isinstance(f_type, UnionType):
-                f_type = f_type.__args__[0]
+            f_type = get_field_type(f)
             typename = f_type.__name__
             rows.append((f"-B {name}:{typename.upper()}", doc))
         formatter.write_dl(rows)
 
 
-def set_backend_option(  # pylint: disable=unused-argument
+def set_backend_option(
     ctx: click.Context, param: click.Parameter, opts: list[tuple[str, str]]
 ) -> None:
     api = ctx.obj.api
@@ -195,16 +227,8 @@ def set_backend_option(  # pylint: disable=unused-argument
         field = all_fields.get(name)
         if field is None:
             raise click.BadParameter(f"Invalid parameter {name}")
-        f_type = field.type
-        if isinstance(f_type, UnionType):
-            f_type = f_type.__args__[0]
-        try:
-            tv = f_type(value)
-        except ValueError as e:
-            raise click.BadParameter(
-                f"Invalid value for {name} with value {value}: {e}"
-            ) from e
-        setattr(api.parameters, name, tv)
+        tv = convert_str_to_field(ctx, field, value)
+        setattr(api.parameters, field.name, tv)
 
     for kv in opts:
         set_one_backend_option(kv)
@@ -264,9 +288,7 @@ def command_uses_new_session(f_in: click.decorators.FC) -> click.Command:
     return click.command()(f)
 
 
-def version_callback(  # pylint: disable=unused-argument
-    ctx: click.Context, param: click.Parameter, value: None
-) -> None:
+def version_callback(ctx: click.Context, param: click.Parameter, value: None) -> None:
     if not value or ctx.resilient_parsing:
         return
 
@@ -293,18 +315,18 @@ def version_callback(  # pylint: disable=unused-argument
 
 @dataclass
 class Obj:
-    api: Backend | None = None
-    system_message: str | None = None
-    session: list[Message] | None = None
-    session_filename: pathlib.Path | None = None
+    api: Optional[Backend] = None
+    system_message: Optional[str] = None
+    session: Optional[list[Message]] = None
+    session_filename: Optional[pathlib.Path] = None
 
 
 class MyCLI(click.MultiCommand):
     def make_context(
         self,
-        info_name: str | None,
+        info_name: Optional[str],
         args: list[str],
-        parent: click.Context | None = None,
+        parent: Optional[click.Context] = None,
         **extra: Any,
     ) -> click.Context:
         result = super().make_context(info_name, args, parent, obj=Obj(), **extra)
@@ -332,7 +354,7 @@ class MyCLI(click.MultiCommand):
         self, ctx: click.Context, formatter: click.HelpFormatter
     ) -> None:
         super().format_options(ctx, formatter)
-        api = ctx.obj.api or get_api()
+        api = ctx.obj.api or get_api(ctx)
         if hasattr(api, "parameters"):
             format_backend_help(api, formatter)
 

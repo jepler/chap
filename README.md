@@ -9,11 +9,11 @@ SPDX-License-Identifier: MIT
 
 # chap - A Python interface to chatgpt and other LLMs, including a terminal user interface (tui)
 
-![Chap screencast](https://github.com/jepler/chap/blob/main/chap.gif)
+![Chap screencast](https://raw.githubusercontent.com/jepler/chap/main/chap.gif)
 
 ## System requirements
 
-Chap is developed on Linux with Python 3.11. Due to use of the `X | Y` style of type hints, it is known to not work on Python 3.9 and older. The target minimum Python version is 3.11 (debian stable).
+Chap is primarily developed on Linux with Python 3.11. Moderate effort will be made to support versions back to Python 3.9 (Debian oldstable).
 
 ## Installation
 
@@ -82,7 +82,28 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
  * `chap grep needle`
 
 ## Interactive terminal usage
- * `chap tui`
+The interactive terminal mode is accessed via `chap tui`.
+
+There are a variety of keyboard shortcuts to be aware of:
+ * tab/shift-tab to move between the entry field and the conversation, or between conversation items
+ * While in the text box, F9 or (if supported by your terminal) alt+enter to submit multiline text
+ * while on a conversation item:
+   * ctrl+x to re-draft the message. This
+     * saves a copy of the session in an auto-named file in the conversations folder
+     * removes the conversation from this message to the end
+     * puts the user's message in the text box to edit
+   * ctrl+x to re-submit the message. This
+     * saves a copy of the session in an auto-named file in the conversations folder
+     * removes the conversation from this message to the end
+     * puts the user's message in the text box
+     * and submits it immediately
+   * ctrl+y to yank the message. This places the response part of the current
+     interaction in the operating system clipboard to be pasted (e..g, with
+     ctrl+v or command+v in other software)
+   * ctrl+q to toggle whether this message may be included in the contextual history for a future query.
+     The exact way history is submitted is determined by the back-end, often by
+     counting messages or tokens, but the ctrl+q toggle ensures this message (both the user
+     and assistant message parts) are not considered.
 
 ## Sessions & Command-line Parameters
 

@@ -6,7 +6,8 @@ click
 httpx
 lorem-text
 platformdirs
+pyperclip
 simple_parsing
-textual>=0.18.0
+textual[syntax]
 tiktoken
 websockets

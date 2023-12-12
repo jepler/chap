@@ -4,7 +4,7 @@
 
 import asyncio
 import sys
-from typing import Iterable, Protocol
+from typing import Iterable, Optional, Protocol
 
 import click
 import rich
@@ -40,7 +40,7 @@ class DumbPrinter:
 
 
 class WrappingPrinter:
-    def __init__(self, width: int | None = None) -> None:
+    def __init__(self, width: Optional[int] = None) -> None:
         self._width = width or rich.get_console().width
         self._column = 0
         self._line = ""
@@ -122,4 +122,4 @@ def main(obj: Obj, prompt: str, print_prompt: bool) -> None:
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()

@@ -101,7 +101,7 @@ class ChatGPT:
             json={
                 "model": self.parameters.model,
                 "messages": session_to_list(full_prompt),
-            },  # pylint: disable=no-member
+            },
             headers={
                 "Authorization": f"Bearer {self.get_key()}",
             },

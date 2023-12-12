@@ -55,9 +55,7 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         *,
         max_query_size: int = 5,
         timeout: float = 180,
-    ) -> AsyncGenerator[
-        str, None
-    ]:  # pylint: disable=unused-argument,too-many-locals,too-many-branches
+    ) -> AsyncGenerator[str, None]:
         params = {
             "prompt": self.make_full_query(session + [User(query)], max_query_size),
             "stream": True,

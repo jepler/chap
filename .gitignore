@@ -8,3 +8,4 @@ __pycache__
 /dist
 /src/chap/__version__.py
 /venv
+/keys.log

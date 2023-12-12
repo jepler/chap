@@ -3,19 +3,44 @@
 # SPDX-License-Identifier: MIT
 
 import asyncio
-import subprocess
 import sys
-from typing import cast
+from typing import Any, Optional, cast, TYPE_CHECKING
 
+import click
 from markdown_it import MarkdownIt
 from textual import work
+from textual._ansi_sequences import ANSI_SEQUENCES_KEYS
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Button, Footer, Input, LoadingIndicator, Markdown
+from textual.keys import Keys
+from textual.widgets import Button, Footer, LoadingIndicator, Markdown, TextArea
 
 from ..core import Backend, Obj, command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Message, Session, User, new_session, session_to_file
+
+
+# workaround for pyperclip being un-typed
+if TYPE_CHECKING:
+
+    def pyperclip_copy(data: str) -> None:
+        ...
+else:
+    from pyperclip import copy as pyperclip_copy
+
+
+# Monkeypatch alt+enter as meaning "F9", WFM
+# ignore typing here because ANSI_SEQUENCES_KEYS is a Mapping[] which is read-only as
+# far as mypy is concerned.
+ANSI_SEQUENCES_KEYS["\x1b\r"] = (Keys.F9,)  # type: ignore
+ANSI_SEQUENCES_KEYS["\x1b\n"] = (Keys.F9,)  # type: ignore
+
+
+class SubmittableTextArea(TextArea):
+    BINDINGS = [
+        Binding("f9", "submit", "Submit", show=True),
+        Binding("tab", "focus_next", show=False, priority=True),  # no inserting tabs
+    ]
 
 
 def parser_factory() -> MarkdownIt:
@@ -24,9 +49,7 @@ def parser_factory() -> MarkdownIt:
     return parser
 
 
-class ChapMarkdown(
-    Markdown, can_focus=True, can_focus_children=False
-):  # pylint: disable=function-redefined
+class ChapMarkdown(Markdown, can_focus=True, can_focus_children=False):
     BINDINGS = [
         Binding("ctrl+y", "yank", "Yank text", show=True),
         Binding("ctrl+r", "resubmit", "resubmit", show=True),
@@ -56,10 +79,10 @@ class Tui(App[None]):
     ]
 
     def __init__(
-        self, api: Backend | None = None, session: Session | None = None
+        self, api: Optional[Backend] = None, session: Optional[Session] = None
     ) -> None:
         super().__init__()
-        self.api = api or get_api("lorem")
+        self.api = api or get_api(click.Context(click.Command("chap tui")), "lorem")
         self.session = (
             new_session(self.api.system_message) if session is None else session
         )
@@ -73,8 +96,8 @@ class Tui(App[None]):
         return cast(VerticalScroll, self.query_one("#wait"))
 
     @property
-    def input(self) -> Input:
-        return self.query_one(Input)
+    def input(self) -> SubmittableTextArea:
+        return self.query_one(SubmittableTextArea)
 
     @property
     def cancel_button(self) -> CancelButton:
@@ -94,7 +117,9 @@ class Tui(App[None]):
             Container(id="pad"),
             id="content",
         )
-        yield Input(placeholder="Prompt")
+        s = SubmittableTextArea(language="markdown")
+        s.show_line_numbers = False
+        yield s
         with Horizontal(id="wait"):
             yield LoadingIndicator()
             yield CancelButton(label="❌ Stop Generation", id="cancel", disabled=True)
@@ -103,8 +128,8 @@ class Tui(App[None]):
         self.container.scroll_end(animate=False)
         self.input.focus()
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
-        self.get_completion(event.value)
+    async def action_submit(self) -> None:
+        self.get_completion(self.input.text)
 
     @work(exclusive=True)
     async def get_completion(self, query: str) -> None:
@@ -162,10 +187,10 @@ class Tui(App[None]):
         try:
             await asyncio.gather(render_fun(), get_token_fun())
         finally:
-            self.input.value = ""
+            self.input.clear()
             all_output = self.session[-1].content
             output.update(all_output)
-            output._markdown = all_output  # pylint: disable=protected-access
+            output._markdown = all_output
             self.container.scroll_end()
 
             for markdown in self.container.children:
@@ -183,8 +208,8 @@ class Tui(App[None]):
     def action_yank(self) -> None:
         widget = self.focused
         if isinstance(widget, ChapMarkdown):
-            content = widget._markdown or ""  # pylint: disable=protected-access
-            subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
+            content = widget._markdown or ""
+            pyperclip_copy(content)
 
     def action_toggle_history(self) -> None:
         widget = self.focused
@@ -204,9 +229,7 @@ class Tui(App[None]):
     async def action_stop_generating(self) -> None:
         self.workers.cancel_all()
 
-    async def on_button_pressed(  # pylint: disable=unused-argument
-        self, event: Button.Pressed
-    ) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         self.workers.cancel_all()
 
     async def action_quit(self) -> None:
@@ -235,19 +258,31 @@ class Tui(App[None]):
         session_to_file(self.session, new_session_path())
 
         query = self.session[idx].content
-        self.input.value = query
+        self.input.load_text(query)
 
         del self.session[idx:]
         for child in self.container.children[idx:-1]:
             await child.remove()
 
         self.input.focus()
+        self.on_text_area_changed()
         if resubmit:
-            await self.input.action_submit()
+            await self.action_submit()
+
+    def on_text_area_changed(self, event: Any = None) -> None:
+        height = self.input.document.get_size(self.input.indent_width)[1]
+        max_height = max(3, self.size.height - 6)
+        if height >= max_height:
+            self.input.styles.height = max_height
+        elif height <= 3:
+            self.input.styles.height = 3
+        else:
+            self.input.styles.height = height
 
 
 @command_uses_new_session
-def main(obj: Obj) -> None:
+@click.option("--replace-system-prompt/--no-replace-system-prompt", default=False)
+def main(obj: Obj, replace_system_prompt: bool) -> None:
     """Start interactive terminal user interface session"""
     api = obj.api
     assert api is not None
@@ -255,6 +290,9 @@ def main(obj: Obj) -> None:
     assert session is not None
     session_filename = obj.session_filename
     assert session_filename is not None
+
+    if replace_system_prompt:
+        session[0].content = obj.system_message or api.system_message
 
     tui = Tui(api, session)
     tui.run()
@@ -268,4 +306,4 @@ def main(obj: Obj) -> None:
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()

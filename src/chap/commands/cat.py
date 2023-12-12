@@ -38,4 +38,4 @@ def main(obj: Obj, no_system: bool) -> None:
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()
