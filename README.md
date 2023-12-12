@@ -82,7 +82,28 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
  * `chap grep needle`
 
 ## Interactive terminal usage
- * `chap tui`
+The interactive terminal mode is accessed via `chap tui`.
+
+There are a variety of keyboard shortcuts to be aware of:
+ * tab/shift-tab to move between the entry field and the conversation, or between conversation items
+ * While in the text box, F9 or (if supported by your terminal) alt+enter to submit multiline text
+ * while on a conversation item:
+   * ctrl+x to re-draft the message. This
+     * saves a copy of the session in an auto-named file in the conversations folder
+     * removes the conversation from this message to the end
+     * puts the user's message in the text box to edit
+   * ctrl+x to re-submit the message. This
+     * saves a copy of the session in an auto-named file in the conversations folder
+     * removes the conversation from this message to the end
+     * puts the user's message in the text box
+     * and submits it immediately
+   * ctrl+y to yank the message. This places the response part of the current
+     interaction in the operating system clipboard to be pasted (e..g, with
+     ctrl+v or command+v in other software)
+   * ctrl+q to toggle whether this message may be included in the contextual history for a future query.
+     The exact way history is submitted is determined by the back-end, often by
+     counting messages or tokens, but the ctrl+q toggle ensures this message (both the user
+     and assistant message parts) are not considered.
 
 ## Sessions & Command-line Parameters
 
