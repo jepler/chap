@@ -3,9 +3,8 @@
 # SPDX-License-Identifier: MIT
 
 import asyncio
-import subprocess
 import sys
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, TYPE_CHECKING
 
 import click
 from markdown_it import MarkdownIt
@@ -19,6 +18,16 @@ from textual.widgets import Button, Footer, LoadingIndicator, Markdown, TextArea
 
 from ..core import Backend, Obj, command_uses_new_session, get_api, new_session_path
 from ..session import Assistant, Message, Session, User, new_session, session_to_file
+
+
+# workaround for pyperclip being un-typed
+if TYPE_CHECKING:
+
+    def pyperclip_copy(data: str) -> None:
+        ...
+else:
+    from pyperclip import copy as pyperclip_copy
+
 
 # Monkeypatch alt+enter as meaning "F9", WFM
 # ignore typing here because ANSI_SEQUENCES_KEYS is a Mapping[] which is read-only as
@@ -200,7 +209,7 @@ class Tui(App[None]):
         widget = self.focused
         if isinstance(widget, ChapMarkdown):
             content = widget._markdown or ""
-            subprocess.run(["xsel", "-ib"], input=content.encode("utf-8"), check=False)
+            pyperclip_copy(content)
 
     def action_toggle_history(self) -> None:
         widget = self.focused

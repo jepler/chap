@@ -6,6 +6,7 @@ click
 httpx
 lorem-text
 platformdirs
+pyperclip
 simple_parsing
 textual[syntax]
 tiktoken
