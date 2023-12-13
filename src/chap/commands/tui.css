@@ -36,6 +36,9 @@ Markdown:focus-within {
 Markdown {
     border-left: heavy transparent;
 }
+MarkdownFence {
+    max-height: 9999;
+}
 Footer {
     dock: top;
 }
