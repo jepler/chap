@@ -18,10 +18,10 @@ class LlamaCpp(AutoAskMixin):
         url: str = "http://localhost:8080/completion"
         """The URL of a llama.cpp server's completion endpoint."""
 
-        start_prompt: str = """<s>[INST] <<SYS>>\n"""
-        after_system: str = "\n<</SYS>>\n\n"
-        after_user: str = """ [/INST] """
-        after_assistant: str = """ </s><s>[INST] """
+        start_prompt: str = "<s>"
+        system_format: str = "<<SYS>>{}<</SYS>>"
+        user_format: str = " [INST] {} [/INST]"
+        assistant_format: str = " {}</s>"
 
     def __init__(self) -> None:
         super().__init__()
@@ -34,18 +34,18 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
     def make_full_query(self, messages: Session, max_query_size: int) -> str:
         del messages[1:-max_query_size]
         result = [self.parameters.start_prompt]
+        formats = {
+            Role.SYSTEM: self.parameters.system_format,
+            Role.USER: self.parameters.user_format,
+            Role.ASSISTANT: self.parameters.assistant_format,
+        }
         for m in messages:
             content = (m.content or "").strip()
             if not content:
                 continue
-            result.append(content)
-            if m.role == Role.SYSTEM:
-                result.append(self.parameters.after_system)
-            elif m.role == Role.ASSISTANT:
-                result.append(self.parameters.after_assistant)
-            elif m.role == Role.USER:
-                result.append(self.parameters.after_user)
+            result.append(formats[m.role].format(content))
         full_query = "".join(result)
+        print("fq", full_query)
         return full_query
 
     async def aask(
