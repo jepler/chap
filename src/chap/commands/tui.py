@@ -292,7 +292,9 @@ def main(obj: Obj, replace_system_prompt: bool) -> None:
     assert session_filename is not None
 
     if replace_system_prompt:
-        session[0].content = obj.system_message or api.system_message
+        session[0].content = (
+            api.system_message if obj.system_message is None else obj.system_message
+        )
 
     tui = Tui(api, session)
     tui.run()

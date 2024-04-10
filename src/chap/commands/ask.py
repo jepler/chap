@@ -100,8 +100,9 @@ def verbose_ask(api: Backend, session: Session, q: str, print_prompt: bool) -> s
 
 @command_uses_new_session
 @click.option("--print-prompt/--no-print-prompt", default=True)
-@click.argument("prompt", nargs=-1, required=True)
-def main(obj: Obj, prompt: str, print_prompt: bool) -> None:
+@click.option("--stdin/--no-stdin", "use_stdin", default=False)
+@click.argument("prompt", nargs=-1)
+def main(obj: Obj, prompt: list[str], use_stdin: bool, print_prompt: bool) -> None:
     """Ask a question (command-line argument is passed as prompt)"""
     session = obj.session
     assert session is not None
@@ -112,9 +113,16 @@ def main(obj: Obj, prompt: str, print_prompt: bool) -> None:
     api = obj.api
     assert api is not None
 
+    if use_stdin:
+        if prompt:
+            raise click.UsageError("Can't use 'prompt' together with --stdin")
+
+        joined_prompt = sys.stdin.read()
+    else:
+        joined_prompt = " ".join(prompt)
     #    symlink_session_filename(session_filename)
 
-    response = verbose_ask(api, session, " ".join(prompt), print_prompt=print_prompt)
+    response = verbose_ask(api, session, joined_prompt, print_prompt=print_prompt)
 
     print(f"Saving session to {session_filename}", file=sys.stderr)
     if response is not None:
