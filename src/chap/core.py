@@ -177,10 +177,21 @@ def colonstr(arg: str) -> tuple[str, str]:
 
 
 def set_system_message(ctx: click.Context, param: click.Parameter, value: str) -> None:
-    if value and value.startswith("@"):
+    if value is None:
+        return
+    if value.startswith("@"):
         with open(value[1:], "r", encoding="utf-8") as f:
-            value = f.read().rstrip()
+            value = f.read().strip()
     ctx.obj.system_message = value
+
+
+def set_system_message_from_file(
+    ctx: click.Context, param: click.Parameter, value: click.File
+) -> None:
+    if value is None:
+        return
+    content = value.read().strip()
+    ctx.obj.system_message = content
 
 
 def set_backend(ctx: click.Context, param: click.Parameter, value: str) -> None:
@@ -368,6 +379,13 @@ main = MyCLI(
             is_eager=True,
             help="Show the version and exit",
             callback=version_callback,
+        ),
+        click.Option(
+            ("--system-message-file", "-@"),
+            type=click.File("r"),
+            default=None,
+            callback=set_system_message_from_file,
+            expose_value=False,
         ),
         click.Option(
             ("--system-message", "-S"),
