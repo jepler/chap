@@ -66,8 +66,8 @@ class EncodingMeta:
 class ChatGPT:
     @dataclass
     class Parameters:
-        model: str = "gpt-3.5-turbo"
-        """The model to use. The most common alternative value is 'gpt-4'."""
+        model: str = "gpt-4-turbo"
+        """The model to use. The most common alternative value is 'gpt-3.5-turbo'."""
 
         max_request_tokens: int = 1024
         """The approximate greatest number of tokens to send in a request. When the session is long, the system prompt and 1 or more of the most recent interaction steps are sent."""
