@@ -114,7 +114,7 @@ def main(obj: Obj, prompt: list[str], use_stdin: bool, print_prompt: bool) -> No
     assert api is not None
 
     if use_stdin:
-        if prompt == use_stdin:
+        if prompt:
             raise click.UsageError("Can't use 'prompt' together with --stdin")
 
         joined_prompt = sys.stdin.read()

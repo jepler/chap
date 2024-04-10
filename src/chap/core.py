@@ -5,6 +5,7 @@
 
 import asyncio
 import datetime
+import io
 import importlib
 import os
 import pathlib
@@ -186,7 +187,7 @@ def set_system_message(ctx: click.Context, param: click.Parameter, value: str) -
 
 
 def set_system_message_from_file(
-    ctx: click.Context, param: click.Parameter, value: click.File
+    ctx: click.Context, param: click.Parameter, value: io.TextIOWrapper
 ) -> None:
     if value is None:
         return
