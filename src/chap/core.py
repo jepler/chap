@@ -333,7 +333,7 @@ class Obj:
     session_filename: Optional[pathlib.Path] = None
 
 
-class MyCLI(click.MultiCommand):
+class MyCLI(click.Group):
     def make_context(
         self,
         info_name: Optional[str],
