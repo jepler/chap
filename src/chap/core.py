@@ -11,6 +11,7 @@ import os
 import pathlib
 import pkgutil
 import subprocess
+import shlex
 from dataclasses import MISSING, Field, dataclass, fields
 from typing import (
     Any,
@@ -40,6 +41,7 @@ else:
 
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
+configuration_path = platformdirs.user_config_path("chap")
 
 
 class ABackend(Protocol):
@@ -333,6 +335,33 @@ class Obj:
     session_filename: Optional[pathlib.Path] = None
 
 
+def expand_splats(args):
+    result = []
+    saw_at_dot = False
+    for a in args:
+        if a == "@.":
+            saw_at_dot = True
+            continue
+        if saw_at_dot:
+            result.append(a)
+            continue
+        if a.startswith("@@"):  ## double @ to escape an argument that starts with @
+            result.append(a[1:])
+            continue
+        if not a.startswith("@"):
+            result.append(a)
+            continue
+        if a.startswith("@:"):
+            fn = configuration_path / a[2:]
+        else:
+            fn = a[1:]
+        with open(fn, "r", encoding="utf-8") as f:
+            content = f.read()
+        parts = shlex.split(content)
+        result.extend(expand_splats(parts))
+    return result
+
+
 class MyCLI(click.Group):
     def make_context(
         self,
@@ -370,6 +399,25 @@ class MyCLI(click.Group):
         if hasattr(api, "parameters"):
             format_backend_help(api, formatter)
 
+    def main(self, args=None, windows_expand_args=True, **kw):
+        if args is None:
+            args = sys.argv[1:]
+            if os.name == "nt" and windows_expand_args:
+                args = click.utils._expand_args(args)
+        else:
+            args = list(args)
+
+        args = expand_splats(args)
+
+        super().main(args, **kw)
+
+
+class ConfigRelativeFile(click.File):
+    def convert(self, value, param, ctx):
+        if isinstance(value, str) and value.startswith(":"):
+            value = configuration_path / value[1:]
+        return super().convert(value, param, ctx)
+
 
 main = MyCLI(
     help="Commandline interface to ChatGPT",
@@ -382,11 +430,12 @@ main = MyCLI(
             callback=version_callback,
         ),
         click.Option(
-            ("--system-message-file", "-@"),
-            type=click.File("r"),
+            ("--system-message-file", "-s"),
+            type=ConfigRelativeFile("r"),
             default=None,
             callback=set_system_message_from_file,
             expose_value=False,
+            help=f"Set the system message from a file. If the filename starts with `:` it is relative to the configuration path {configuration_path}.",
         ),
         click.Option(
             ("--system-message", "-S"),

@@ -81,6 +81,31 @@ Put your OpenAI API key in the platform configuration directory for chap, e.g., 
 
  * `chap grep needle`
 
+## `@FILE` arguments
+
+It's useful to set a bunch of related arguments together, for instance to fully
+configure a back-end. This functionality is implemented via `@FILE` arguments.
+
+Before any other command-line argument parsing is performed, `@FILE` arguments are expanded:
+
+ * An `@FILE` argument is searched relative to the current directory
+ * An `@:FILE` argument is searched relative to the configuration directory (e.g., $HOME/.config/chap)
+ * If an argument starts with a literal `@`, double it: `@@`
+ * `@.` stops processing any further `@FILE` arguments and leaves them unchanged.
+The contents of an `@FILE` are parsed according to `shlex.split(comments=True)`.
+Comments are not supported.
+A typical content might look like this:
+```
+# gpt-3.5.txt: Use cheaper gpt 3.5 and custom prompt
+--backend openai-chatgpt
+-B model:gpt-3.5-turbo
+-s my-custom-system-message.txt
+```
+and you might use it with
+```
+chap @:gpt-3.5.txt ask what version of gpt is this
+```
+
 ## Interactive terminal usage
 The interactive terminal mode is accessed via `chap tui`.
 
