@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 
+from collections.abc import Sequence
 import asyncio
 import datetime
 import io
@@ -335,7 +336,7 @@ class Obj:
     session_filename: Optional[pathlib.Path] = None
 
 
-def expand_splats(args):
+def expand_splats(args: list[str]) -> list[str]:
     result = []
     saw_at_dot = False
     for a in args:
@@ -352,7 +353,7 @@ def expand_splats(args):
             result.append(a)
             continue
         if a.startswith("@:"):
-            fn = configuration_path / a[2:]
+            fn: pathlib.Path | str = configuration_path / a[2:]
         else:
             fn = a[1:]
         with open(fn, "r", encoding="utf-8") as f:
@@ -399,7 +400,15 @@ class MyCLI(click.Group):
         if hasattr(api, "parameters"):
             format_backend_help(api, formatter)
 
-    def main(self, args=None, windows_expand_args=True, **kw):
+    def main(
+        self,
+        args: Sequence[str] | None = None,
+        prog_name: str | None = None,
+        complete_var: str | None = None,
+        standalone_mode: bool = True,
+        windows_expand_args: bool = True,
+        **extra: Any,
+    ) -> Any:
         if args is None:
             args = sys.argv[1:]
             if os.name == "nt" and windows_expand_args:
@@ -409,11 +418,20 @@ class MyCLI(click.Group):
 
         args = expand_splats(args)
 
-        super().main(args, **kw)
+        return super().main(
+            args,
+            prog_name=prog_name,
+            complete_var=complete_var,
+            standalone_mode=standalone_mode,
+            windows_expand_args=windows_expand_args,
+            **extra,
+        )
 
 
 class ConfigRelativeFile(click.File):
-    def convert(self, value, param, ctx):
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> Any:
         if isinstance(value, str) and value.startswith(":"):
             value = configuration_path / value[1:]
         return super().convert(value, param, ctx)
