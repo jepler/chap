@@ -72,6 +72,9 @@ class ChatGPT:
         max_request_tokens: int = 1024
         """The approximate greatest number of tokens to send in a request. When the session is long, the system prompt and 1 or more of the most recent interaction steps are sent."""
 
+        url: str = "https://api.openai.com/v1/chat/completions"
+        """The URL of a chatgpt-pcompatible server's completion endpoint."""
+
     def __init__(self) -> None:
         self.parameters = self.Parameters()
 
@@ -97,7 +100,7 @@ class ChatGPT:
     def ask(self, session: Session, query: str, *, timeout: float = 60) -> str:
         full_prompt = self.make_full_prompt(session + [User(query)])
         response = httpx.post(
-            "https://api.openai.com/v1/chat/completions",
+            self.parameters.url,
             json={
                 "model": self.parameters.model,
                 "messages": session_to_list(full_prompt),
@@ -128,7 +131,7 @@ class ChatGPT:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream(
                     "POST",
-                    "https://api.openai.com/v1/chat/completions",
+                    self.parameters.url,
                     headers={"authorization": f"Bearer {self.get_key()}"},
                     json={
                         "model": self.parameters.model,
