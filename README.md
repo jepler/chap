@@ -93,7 +93,7 @@ Before any other command-line argument parsing is performed, `@FILE` arguments a
  * If an argument starts with a literal `@`, double it: `@@`
  * `@.` stops processing any further `@FILE` arguments and leaves them unchanged.
 The contents of an `@FILE` are parsed according to `shlex.split(comments=True)`.
-Comments are not supported.
+Comments are supported.
 A typical content might look like this:
 ```
 # gpt-3.5.txt: Use cheaper gpt 3.5 and custom prompt
