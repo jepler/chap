@@ -18,10 +18,16 @@ class LlamaCpp(AutoAskMixin):
         url: str = "http://localhost:8080/completion"
         """The URL of a llama.cpp server's completion endpoint."""
 
-        start_prompt: str = "<s>"
-        system_format: str = "<<SYS>>{}<</SYS>>"
-        user_format: str = " [INST] {} [/INST]"
-        assistant_format: str = " {}</s>"
+        start_prompt: str = "<|begin_of_text|>"
+        system_format: str = (
+            "<|start_header_id|>system<|end_header_id|>\n\n{}<|eot_id|>"
+        )
+        user_format: str = "<|start_header_id|>user<|end_header_id|>\n\n{}<|eot_id|>"
+        assistant_format: str = (
+            "<|start_header_id|>assistant<|end_header_id|>\n\n{}<|eot_id|>"
+        )
+        end_prompt: str = "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        stop: str | None = None
 
     def __init__(self) -> None:
         super().__init__()
@@ -59,7 +65,7 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
         params = {
             "prompt": self.make_full_query(session + [User(query)], max_query_size),
             "stream": True,
-            "stop": ["</s>", "<s>", "[INST]"],
+            "stop": ["</s>", "<s>", "[INST]", "<|eot_id|>"],
         }
         new_content: list[str] = []
         try:

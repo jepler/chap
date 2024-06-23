@@ -17,7 +17,7 @@ class Anthropic(AutoAskMixin):
     @dataclass
     class Parameters:
         url: str = "https://api.anthropic.com"
-        model: str = "claude-3-sonnet-20240229"
+        model: str = "claude-3-5-sonnet-20240620"
         max_new_tokens: int = 1000
 
     def __init__(self) -> None:
@@ -94,5 +94,5 @@ Answer each question accurately and thoroughly.
 
 
 def factory() -> Backend:
-    """Uses the huggingface text-generation-interface web API"""
+    """Uses the anthropic text-generation-interface web API"""
     return Anthropic()
