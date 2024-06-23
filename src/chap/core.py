@@ -129,7 +129,11 @@ def configure_api_from_environment(
         setattr(api.parameters, field.name, tv)
 
 
-def get_api(ctx: click.Context, name: str = "openai_chatgpt") -> Backend:
+def get_api(ctx: click.Context | None = None, name: str | None = None) -> Backend:
+    if ctx is None:
+        ctx = click.Context(click.Command("chap"))
+    if name is None:
+        name = os.environ.get("CHAP_BACKEND", "openai_chatgpt")
     name = name.replace("-", "_")
     backend = cast(
         Backend, importlib.import_module(f"{__package__}.backends.{name}").factory()
