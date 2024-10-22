@@ -51,7 +51,6 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
                 continue
             result.append(formats[m.role].format(content))
         full_query = "".join(result)
-        print("fq", full_query)
         return full_query
 
     async def aask(
