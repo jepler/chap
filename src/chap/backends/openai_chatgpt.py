@@ -75,6 +75,12 @@ class ChatGPT:
         url: str = "https://api.openai.com/v1/chat/completions"
         """The URL of a chatgpt-pcompatible server's completion endpoint."""
 
+        temperature: float | None = None
+        """The model temperature for sampling"""
+
+        top_p: float | None = None
+        """The model temperature for sampling"""
+
     def __init__(self) -> None:
         self.parameters = self.Parameters()
 
@@ -135,6 +141,8 @@ class ChatGPT:
                     headers={"authorization": f"Bearer {self.get_key()}"},
                     json={
                         "model": self.parameters.model,
+                        "temperature": self.parameters.temperature,
+                        "top_p": self.parameters.top_p,
                         "stream": True,
                         "messages": session_to_list(full_prompt),
                     },
