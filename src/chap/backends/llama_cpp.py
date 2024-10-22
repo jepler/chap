@@ -51,7 +51,6 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
                 continue
             result.append(formats[m.role].format(content))
         full_query = "".join(result)
-        print("fq", full_query)
         return full_query
 
     async def aask(
@@ -102,5 +101,10 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
 
 
 def factory() -> Backend:
-    """Uses the llama.cpp completion web API"""
+    """Uses the llama.cpp completion web API
+
+    Note: Consider using the openai-chatgpt backend with a custom URL instead.
+    The llama.cpp server will automatically apply common chat templates with the
+    openai-chatgpt backend, while chat templates must be manually configured client side
+    with this backend."""
     return LlamaCpp()

@@ -66,14 +66,20 @@ class EncodingMeta:
 class ChatGPT:
     @dataclass
     class Parameters:
-        model: str = "gpt-4-turbo"
-        """The model to use. The most common alternative value is 'gpt-3.5-turbo'."""
+        model: str = "gpt-4o-mini"
+        """The model to use. The most common alternative value is 'gpt-4o'."""
 
         max_request_tokens: int = 1024
         """The approximate greatest number of tokens to send in a request. When the session is long, the system prompt and 1 or more of the most recent interaction steps are sent."""
 
         url: str = "https://api.openai.com/v1/chat/completions"
-        """The URL of a chatgpt-pcompatible server's completion endpoint."""
+        """The URL of a chatgpt-compatible server's completion endpoint. Notably, llama.cpp's server is compatible with this backend, and can automatically apply common chat templates too."""
+
+        temperature: float | None = None
+        """The model temperature for sampling"""
+
+        top_p: float | None = None
+        """The model temperature for sampling"""
 
     def __init__(self) -> None:
         self.parameters = self.Parameters()
@@ -135,6 +141,8 @@ class ChatGPT:
                     headers={"authorization": f"Bearer {self.get_key()}"},
                     json={
                         "model": self.parameters.model,
+                        "temperature": self.parameters.temperature,
+                        "top_p": self.parameters.top_p,
                         "stream": True,
                         "messages": session_to_list(full_prompt),
                     },
