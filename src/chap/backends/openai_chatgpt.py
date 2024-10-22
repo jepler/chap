@@ -73,7 +73,7 @@ class ChatGPT:
         """The approximate greatest number of tokens to send in a request. When the session is long, the system prompt and 1 or more of the most recent interaction steps are sent."""
 
         url: str = "https://api.openai.com/v1/chat/completions"
-        """The URL of a chatgpt-pcompatible server's completion endpoint."""
+        """The URL of a chatgpt-compatible server's completion endpoint. Notably, llama.cpp's server is compatible with this backend, and can automatically apply common chat templates too."""
 
         temperature: float | None = None
         """The model temperature for sampling"""
