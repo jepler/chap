@@ -89,21 +89,21 @@ configure a back-end. This functionality is implemented via `@FILE` arguments.
 Before any other command-line argument parsing is performed, `@FILE` arguments are expanded:
 
  * An `@FILE` argument is searched relative to the current directory
- * An `@:FILE` argument is searched relative to the configuration directory (e.g., $HOME/.config/chap)
+ * An `@:FILE` argument is searched relative to the configuration directory (e.g., $HOME/.config/chap/presets)
  * If an argument starts with a literal `@`, double it: `@@`
  * `@.` stops processing any further `@FILE` arguments and leaves them unchanged.
 The contents of an `@FILE` are parsed according to `shlex.split(comments=True)`.
 Comments are supported.
 A typical content might look like this:
 ```
-# gpt-3.5.txt: Use cheaper gpt 3.5 and custom prompt
+# cfg/gpt-4o: Use more expensive gpt 4o and custom prompt
 --backend openai-chatgpt
--B model:gpt-3.5-turbo
--s my-custom-system-message.txt
+-B model:gpt-4o
+-s :my-custom-system-message.txt
 ```
 and you might use it with
 ```
-chap @:gpt-3.5.txt ask what version of gpt is this
+chap @:cfg/gpt-4o ask what version of gpt is this
 ```
 
 ## Interactive terminal usage
@@ -144,13 +144,18 @@ an existing session with `-s`. Or, you can continue the last session with
 You can set the "system message" with the `-S` flag.
 
 You can select the text generating backend with the `-b` flag:
- * openai-chatgpt: the default, paid API, best quality results
+ * openai-chatgpt: the default, paid API, best quality results. Also works with compatible API implementations including llama-cpp when the correct backend URL is specified.
  * llama-cpp: Works with [llama.cpp's http server](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md) and can run locally with various models,
- though it is [optimized for models that use the llama2-style prompting](https://huggingface.co/blog/llama2#how-to-prompt-llama-2).
- Set the server URL with `-B url:...`.
+ though it is [optimized for models that use the llama2-style prompting](https://huggingface.co/blog/llama2#how-to-prompt-llama-2). Consider using llama.cpp's OpenAI compatible API with the openai-chatgpt backend instead, in which case the server can apply the chat template.
  * textgen: Works with https://github.com/oobabooga/text-generation-webui and can run locally with various models.
  Needs the server URL in *$configuration_directory/textgen\_url*.
+ * mistral: Works with the [mistral paid API](https://docs.mistral.ai/).
+ * anthropic: Works with the [anthropic paid API](https://docs.anthropic.com/en/home).
+ * huggingface: Works with the [huggingface API](https://huggingface.co/docs/api-inference/index), which includes a free tier.
  * lorem: local non-AI lorem generator for testing
+
+Backends have settings such as URLs and where API keys are stored. use `chap --backend
+<BACKEND> --help` to list settings for a particular backend.
 
 ## Environment variables
 
@@ -158,7 +163,7 @@ The backend can be set with the `CHAP_BACKEND` environment variable.
 
 Backend settings can be set with `CHAP_<backend_name>_<parameter_name>`, with `backend_name` and `parameter_name` all in caps.
 
-For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama-cpp back-end.
+For instance, `CHAP_LLAMA_CPP_URL=http://server.local:8080/completion` changes the default server URL for the llama-cpp backend.
 
 ## Importing from ChatGPT
 
