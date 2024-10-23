@@ -44,6 +44,8 @@ if USE_PASSWORD_STORE.exists():
 
     @functools.cache
     def get_key(name: str, what: str = "api key") -> str:
+        if name == "-":
+            return "-"
         key_path = f"{pass_prefix}{name}"
         command = pass_command + [key_path]
         return subprocess.check_output(command, encoding="utf-8").split("\n")[0]
