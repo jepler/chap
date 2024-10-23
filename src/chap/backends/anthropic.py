@@ -9,16 +9,17 @@ from typing import AsyncGenerator, Any
 import httpx
 
 from ..core import AutoAskMixin, Backend
-from ..key import get_key
+from ..key import UsesKeyMixin
 from ..session import Assistant, Role, Session, User
 
 
-class Anthropic(AutoAskMixin):
+class Anthropic(AutoAskMixin, UsesKeyMixin):
     @dataclass
     class Parameters:
         url: str = "https://api.anthropic.com"
         model: str = "claude-3-5-sonnet-20240620"
         max_new_tokens: int = 1000
+        api_key_name = "anthropic_api_key"
 
     def __init__(self) -> None:
         super().__init__()
@@ -87,10 +88,6 @@ Answer each question accurately and thoroughly.
             yield content
 
         session.extend([User(query), Assistant("".join(new_content))])
-
-    @classmethod
-    def get_key(cls) -> str:
-        return get_key("anthropic_api_key")
 
 
 def factory() -> Backend:

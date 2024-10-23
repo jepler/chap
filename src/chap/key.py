@@ -2,9 +2,27 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import Protocol
 import functools
 
 import platformdirs
+
+
+class APIKeyProtocol(Protocol):
+    @property
+    def api_key_name(self) -> str:
+        ...
+
+
+class HasKeyProtocol(Protocol):
+    @property
+    def parameters(self) -> APIKeyProtocol:
+        ...
+
+
+class UsesKeyMixin:
+    def get_key(self: HasKeyProtocol) -> str:
+        return get_key(self.parameters.api_key_name)
 
 
 class NoKeyAvailable(Exception):

@@ -9,11 +9,11 @@ from typing import Any, AsyncGenerator
 import httpx
 
 from ..core import AutoAskMixin, Backend
-from ..key import get_key
+from ..key import UsesKeyMixin
 from ..session import Assistant, Role, Session, User
 
 
-class HuggingFace(AutoAskMixin):
+class HuggingFace(AutoAskMixin, UsesKeyMixin):
     @dataclass
     class Parameters:
         url: str = "https://api-inference.huggingface.co"
@@ -24,6 +24,7 @@ class HuggingFace(AutoAskMixin):
         after_user: str = """ [/INST] """
         after_assistant: str = """ </s><s>[INST] """
         stop_token_id = 2
+        api_key_name = "huggingface_api_token"
 
     def __init__(self) -> None:
         super().__init__()
@@ -109,10 +110,6 @@ A dialog, where USER interacts with AI. AI is helpful, kind, obedient, honest, a
             yield content
 
         session.extend([User(query), Assistant("".join(new_content))])
-
-    @classmethod
-    def get_key(cls) -> str:
-        return get_key("huggingface_api_token")
 
 
 def factory() -> Backend:
