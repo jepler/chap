@@ -12,7 +12,7 @@ import httpx
 import tiktoken
 
 from ..core import Backend
-from ..key import get_key
+from ..key import UsesKeyMixin
 from ..session import Assistant, Message, Session, User, session_to_list
 
 
@@ -63,7 +63,7 @@ class EncodingMeta:
         return cls(encoding, tokens_per_message, tokens_per_name, tokens_overhead)
 
 
-class ChatGPT:
+class ChatGPT(UsesKeyMixin):
     @dataclass
     class Parameters:
         model: str = "gpt-4o-mini"
@@ -80,6 +80,11 @@ class ChatGPT:
 
         top_p: float | None = None
         """The model temperature for sampling"""
+
+        api_key_name: str = "openai_api_key"
+        """The OpenAI API key"""
+
+    parameters: Parameters
 
     def __init__(self) -> None:
         self.parameters = self.Parameters()
@@ -170,10 +175,6 @@ class ChatGPT:
             yield content
 
         session.extend([User(query), Assistant("".join(new_content))])
-
-    @classmethod
-    def get_key(cls) -> str:
-        return get_key("openai_api_key")
 
 
 def factory() -> Backend:

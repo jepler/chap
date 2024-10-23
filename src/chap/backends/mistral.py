@@ -9,16 +9,17 @@ from typing import AsyncGenerator, Any
 import httpx
 
 from ..core import AutoAskMixin
-from ..key import get_key
+from ..key import UsesKeyMixin
 from ..session import Assistant, Session, User
 
 
-class Mistral(AutoAskMixin):
+class Mistral(AutoAskMixin, UsesKeyMixin):
     @dataclass
     class Parameters:
         url: str = "https://api.mistral.ai"
         model: str = "open-mistral-7b"
         max_new_tokens: int = 1000
+        api_key_name = "mistral_api_key"
 
     def __init__(self) -> None:
         super().__init__()
@@ -90,10 +91,6 @@ Answer each question accurately and thoroughly.
             yield content
 
         session.extend([User(query), Assistant("".join(new_content))])
-
-    @classmethod
-    def get_key(cls) -> str:
-        return get_key("mistral_api_key")
 
 
 factory = Mistral
