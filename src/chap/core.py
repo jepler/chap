@@ -13,6 +13,7 @@ import pathlib
 import pkgutil
 import subprocess
 import shlex
+import textwrap
 from dataclasses import MISSING, Field, dataclass, fields
 from typing import (
     Any,
@@ -20,6 +21,7 @@ from typing import (
     Callable,
     Optional,
     Union,
+    IO,
     cast,
     get_origin,
     get_args,
@@ -30,7 +32,6 @@ import click
 import platformdirs
 from simple_parsing.docstring import get_attribute_docstring
 from typing_extensions import Protocol
-
 from . import backends, commands
 from .session import Message, Session, System, session_from_file
 
@@ -187,9 +188,6 @@ def colonstr(arg: str) -> tuple[str, str]:
 def set_system_message(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if value is None:
         return
-    if value.startswith("@"):
-        with open(value[1:], "r", encoding="utf-8") as f:
-            value = f.read().strip()
     ctx.obj.system_message = value
 
 
@@ -340,6 +338,14 @@ class Obj:
     session_filename: Optional[pathlib.Path] = None
 
 
+def maybe_add_txt_extension(fn: pathlib.Path) -> pathlib.Path:
+    if not fn.exists():
+        fn1 = pathlib.Path(str(fn) + ".txt")
+        if fn1.exists():
+            fn = fn1
+    return fn
+
+
 def expand_splats(args: list[str]) -> list[str]:
     result = []
     saw_at_dot = False
@@ -357,9 +363,10 @@ def expand_splats(args: list[str]) -> list[str]:
             result.append(a)
             continue
         if a.startswith("@:"):
-            fn: pathlib.Path | str = configuration_path / a[2:]
+            fn: pathlib.Path = configuration_path / "preset" / a[2:]
         else:
-            fn = a[1:]
+            fn = pathlib.Path(a[1:])
+        fn = maybe_add_txt_extension(fn)
         with open(fn, "r", encoding="utf-8") as f:
             content = f.read()
         parts = shlex.split(content)
@@ -396,9 +403,44 @@ class MyCLI(click.Group):
         except ModuleNotFoundError as exc:
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
+    def format_splat_options(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
+        with formatter.section("Splats"):
+            formatter.write_text(
+                "Before any other command-line argument parsing is performed, @FILE arguments are expanded:"
+            )
+            formatter.write_paragraph()
+            formatter.indent()
+            formatter.write_dl(
+                [
+                    ("@FILE", "Argument is searched relative to the current directory"),
+                    (
+                        "@:FILE",
+                        "Argument is searched relative to the configuration directory (e.g., $HOME/.config/chap/preset)",
+                    ),
+                    ("@@…", "If an argument starts with a literal '@', double it"),
+                    (
+                        "@.",
+                        "Stops processing any further `@FILE` arguments and leaves them unchanged.",
+                    ),
+                ]
+            )
+            formatter.dedent()
+            formatter.write_paragraph()
+            formatter.write_text(
+                textwrap.dedent(
+                    """\
+                    The contents of an `@FILE` are parsed by `shlex.split(comments=True)`.
+                    Comments are supported. If the filename ends in .txt,
+                    the extension may be omitted."""
+                )
+            )
+
     def format_options(
         self, ctx: click.Context, formatter: click.HelpFormatter
     ) -> None:
+        self.format_splat_options(ctx, formatter)
         super().format_options(ctx, formatter)
         api = ctx.obj.api or get_api(ctx)
         if hasattr(api, "parameters"):
@@ -433,11 +475,23 @@ class MyCLI(click.Group):
 
 
 class ConfigRelativeFile(click.File):
+    def __init__(self, mode: str, where: str) -> None:
+        super().__init__(mode)
+        self.where = where
+
     def convert(
-        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+        self,
+        value: str | os.PathLike[str] | IO[Any],
+        param: click.Parameter | None,
+        ctx: click.Context | None,
     ) -> Any:
-        if isinstance(value, str) and value.startswith(":"):
-            value = configuration_path / value[1:]
+        if isinstance(value, str):
+            if value.startswith(":"):
+                value = configuration_path / self.where / value[1:]
+            else:
+                value = pathlib.Path(value)
+        if isinstance(value, pathlib.Path):
+            value = maybe_add_txt_extension(value)
         return super().convert(value, param, ctx)
 
 
@@ -453,11 +507,11 @@ main = MyCLI(
         ),
         click.Option(
             ("--system-message-file", "-s"),
-            type=ConfigRelativeFile("r"),
+            type=ConfigRelativeFile("r", where="prompt"),
             default=None,
             callback=set_system_message_from_file,
             expose_value=False,
-            help=f"Set the system message from a file. If the filename starts with `:` it is relative to the configuration path {configuration_path}.",
+            help=f"Set the system message from a file. If the filename starts with `:` it is relative to the {configuration_path}/prompt. If the filename ends in .txt, the extension may be omitted.",
         ),
         click.Option(
             ("--system-message", "-S"),
