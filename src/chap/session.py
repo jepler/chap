@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import enum
 import json
 import pathlib
 from dataclasses import asdict, dataclass
@@ -12,8 +13,7 @@ from typing import Union, cast
 from typing_extensions import TypedDict
 
 
-# not an enum.Enum because these objects are not json-serializable, sigh
-class Role:
+class Role(str, enum.Enum):
     ASSISTANT = "assistant"
     SYSTEM = "system"
     USER = "user"
@@ -23,7 +23,7 @@ class Role:
 class Message:
     """Represents one Message within a chap Session"""
 
-    role: str
+    role: Role
     content: str
 
 

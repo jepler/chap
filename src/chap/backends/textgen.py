@@ -61,8 +61,8 @@ AI: Hello! How can I assist you today?"""
         full_prompt = session + [User(query)]
         del full_prompt[1:-max_query_size]
         new_data = old_data = full_query = "\n".join(
-            f"{role_map.get(q.role,'')}{q.content}\n" for q in full_prompt
-        ) + f"\n{role_map.get('assistant')}"
+            f"{role_map.get(q.role,)}{q.content}\n" for q in full_prompt
+        ) + f"\n{role_map.get(Role.ASSISTANT)}"
         try:
             async with websockets.connect(
                 f"ws://{self.parameters.server_hostname}:7860/queue/join"
