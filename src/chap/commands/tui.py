@@ -38,7 +38,7 @@ ANSI_SEQUENCES_KEYS["\x1b\n"] = (Keys.F9,)  # type: ignore
 
 class SubmittableTextArea(TextArea):
     BINDINGS = [
-        Binding("f9", "submit", "Submit", show=True),
+        Binding("f9", "app.submit", "Submit", show=True),
         Binding("tab", "focus_next", show=False, priority=True),  # no inserting tabs
     ]
 
