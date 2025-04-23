@@ -51,10 +51,10 @@ def parser_factory() -> MarkdownIt:
 
 class ChapMarkdown(Markdown, can_focus=True, can_focus_children=False):
     BINDINGS = [
-        Binding("ctrl+y", "yank", "Yank text", show=True),
-        Binding("ctrl+r", "resubmit", "resubmit", show=True),
-        Binding("ctrl+x", "redraft", "redraft", show=True),
-        Binding("ctrl+q", "toggle_history", "history toggle", show=True),
+        Binding("ctrl+c", "app.yank", "Copy text", show=True),
+        Binding("ctrl+r", "app.resubmit", "resubmit", show=True),
+        Binding("ctrl+x", "app.redraft", "redraft", show=True),
+        Binding("ctrl+q", "app.toggle_history", "history toggle", show=True),
     ]
 
 
@@ -75,7 +75,7 @@ class CancelButton(Button):
 class Tui(App[None]):
     CSS_PATH = "tui.css"
     BINDINGS = [
-        Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+q", "quit", "Quit", show=True, priority=True),
     ]
 
     def __init__(
