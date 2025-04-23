@@ -58,4 +58,4 @@ Markdown {
     margin: 0 1 0 0;
 }
 
-SubmittableTextArea { height: 3 }
+SubmittableTextArea { height: auto; min-height: 5; margin: 0; border: none; border-left: heavy $primary }
