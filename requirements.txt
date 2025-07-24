@@ -8,6 +8,6 @@ lorem-text
 platformdirs
 pyperclip
 simple_parsing
-textual[syntax]
+textual[syntax] >= 4
 tiktoken
 websockets
