@@ -145,7 +145,6 @@ class Tui(App[None]):
         await self.container.mount_all(
             [markdown_for_step(User(query)), output], before="#pad"
         )
-        tokens: list[str] = []
         update: asyncio.Queue[bool] = asyncio.Queue(1)
 
         for markdown in self.container.children:
@@ -166,15 +165,22 @@ class Tui(App[None]):
         )
 
         async def render_fun() -> None:
+            old_len = 0
             while await update.get():
-                if tokens:
-                    output.update("".join(tokens).strip())
-                self.container.scroll_end()
-                await asyncio.sleep(0.1)
+                content = message.content
+                new_len = len(content)
+                new_content = content[old_len:new_len]
+                if new_content:
+                    if old_len:
+                        await output.append(new_content)
+                    else:
+                        output.update(content)
+                    self.container.scroll_end()
+                old_len = new_len
+                await asyncio.sleep(0.01)
 
         async def get_token_fun() -> None:
             async for token in self.api.aask(session, query):
-                tokens.append(token)
                 message.content += token
                 try:
                     update.put_nowait(True)
