@@ -44,6 +44,7 @@ else:
 conversations_path = platformdirs.user_state_path("chap") / "conversations"
 conversations_path.mkdir(parents=True, exist_ok=True)
 configuration_path = platformdirs.user_config_path("chap")
+preset_path = configuration_path / "preset"
 
 
 class ABackend(Protocol):
@@ -363,7 +364,7 @@ def expand_splats(args: list[str]) -> list[str]:
             result.append(a)
             continue
         if a.startswith("@:"):
-            fn: pathlib.Path = configuration_path / "preset" / a[2:]
+            fn: pathlib.Path = preset_path / a[2:]
         else:
             fn = pathlib.Path(a[1:])
         fn = maybe_add_txt_extension(fn)
@@ -403,6 +404,19 @@ class MyCLI(click.Group):
         except ModuleNotFoundError as exc:
             raise click.UsageError(f"Invalid subcommand {cmd_name!r}", ctx) from exc
 
+    def gather_preset_info(self) -> list[tuple[str, str]]:
+        result = []
+        for p in preset_path.glob("*"):
+            if p.is_file():
+                with p.open() as f:
+                    first_line = f.readline()
+                if first_line.startswith("#"):
+                    help_str = first_line[1:].strip()
+                else:
+                    help_str = "(A comment on the first line would be shown here)"
+            result.append((f"@:{p.name}", help_str))
+        return result
+
     def format_splat_options(
         self, ctx: click.Context, formatter: click.HelpFormatter
     ) -> None:
@@ -436,6 +450,13 @@ class MyCLI(click.Group):
                     the extension may be omitted."""
                 )
             )
+            formatter.write_paragraph()
+            if preset_info := self.gather_preset_info():
+                formatter.write_text("Presets found:")
+                formatter.write_paragraph()
+                formatter.indent()
+                formatter.write_dl(preset_info)
+                formatter.dedent()
 
     def format_options(
         self, ctx: click.Context, formatter: click.HelpFormatter
